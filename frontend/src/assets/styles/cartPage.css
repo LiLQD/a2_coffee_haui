@@ -1,0 +1,143 @@
+.cart-layout {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.cart-left {
+  flex: 2;
+}
+
+.cart-right {
+  flex: 1;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  height: fit-content;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* ITEM */
+.cart-item {
+  display: flex;
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.cart-img {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.cart-info {
+  flex: 1;
+}
+
+.price {
+  color: #444;
+  font-size: 14px;
+}
+
+/* Qty Buttons */
+.qty-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #000;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 28px;
+  width: 100px;        
+  justify-content: space-between;
+}
+
+.qty-wrap button {
+  width: 28px;
+  height: 100%;
+  background: #000;
+  color: white;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.qty-wrap span {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  background: #fff;
+}
+
+
+
+/* Right side price */
+.cart-right-info {
+  text-align: right;
+}
+
+.sub {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: red;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Summary */
+.summary-list .sum-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sum-total {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+}
+
+/* Pay button */
+.pay-btn {
+  width: 100%;
+  background: #ff5722;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  margin-top: 15px;
+  font-size: 18px;
+}
+
+/*back button*/
+.back-btn {
+  background: #eee;
+  border: 1px solid #ccc;
+  padding: 4px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  display: inline-block;   /* 🔥 bắt buộc để không bị chiếm chiều rộng */
+}
+
+.back-btn:hover {
+  background: #ddd;
+}

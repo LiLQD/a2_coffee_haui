@@ -1,0 +1,109 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, #d7ccc8, #efebe9, #bcaaa4);
+  font-family: "Poppins", sans-serif;
+}
+
+.app-grid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* căn giữa theo cả 2 chiều */
+
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 60px;
+  align-items: center;
+
+  /* KHÔNG đặt width: 100% ở đây nữa */
+}
+
+
+/* CỘT FORM */
+.login-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* TIÊU ĐỀ */
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* FORM */
+.login-form {
+  background: #fff;
+  padding: 35px 30px;
+  border-radius: 12px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+/* INPUT ROW */
+.form-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.form-row label {
+  font-weight: 600;
+  color: #333;
+}
+
+.form-row input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* BUTTON */
+button {
+  width: 100%;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 0;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.register {
+  background-color: #28a745;
+}
+
+.register:hover {
+  background-color: #218838;
+}
+
+/* LOGO */
+.logo-column {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.haui-logo {
+  width: 350px;
+  height: auto;
+  border-radius: 12px;
+  border: 4px solid #ffc107;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
