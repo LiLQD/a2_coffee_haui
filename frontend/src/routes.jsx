@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import CartPage from "./pages/CartPage.jsx";
-import BulkImport from "./pages/admin/BulkImport.jsx";
+import BulkImport from "./pages/BulkImport.jsx";
 
 function AppRoutes() {
   return (

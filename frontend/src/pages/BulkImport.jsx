@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Papa from "papaparse";
-import "../../assets/styles/bulkImport.css";
-import { getItems, addMany, updateItem, removeItem, clearItems } from "../../utils/menuStore";
+import "../assets/styles/bulkImport.css";
+import { getItems, addMany, updateItem, removeItem, clearItems } from "../utils/menuStore";
 
 export default function BulkImport() {
   const [preview, setPreview] = useState([]);
@@ -60,10 +60,23 @@ export default function BulkImport() {
       <div className="import-actions">
         <button className="import-btn" onClick={downloadTemplate}>📄 Tải file mẫu</button>
 
-        <label className="import-btn">
+        <input
+          id="csvFileInput"
+          type="file"
+          accept=".csv"
+          style={{ display: "none" }}             // ẩn input, không dùng hidden cũng được
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              handleFile(file);
+            }
+          }}
+        />
+
+        <label htmlFor="csvFileInput" className="import-btn">
           📂 Chọn file CSV
-          <input type="file" accept=".csv" hidden onChange={(e) => handleFile(e.target.files[0])}/>
         </label>
+
 
         <button className="import-btn" onClick={resetMenu}>🗑 Reset menu</button>
       </div>
@@ -105,10 +118,10 @@ export default function BulkImport() {
         <div className="modal">
           <div className="modal-content">
             <h3>Sửa món</h3>
-            <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })}/>
-            <input value={editing.price} type="number" onChange={(e) => setEditing({ ...editing, price: e.target.value })}/>
-            <textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })}/>
-            <input value={editing.imageUrl} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })}/>
+            <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+            <input value={editing.price} type="number" onChange={(e) => setEditing({ ...editing, price: e.target.value })} />
+            <textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+            <input value={editing.imageUrl} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })} />
 
             <div className="modal-actions">
               <button className="btn-close" onClick={() => setEditing(null)}>Huỷ</button>
