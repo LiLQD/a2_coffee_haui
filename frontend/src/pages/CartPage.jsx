@@ -7,7 +7,7 @@ export default function Cart() {
   const [cart, setCartState] = useState(getCart());
   const navigate = useNavigate();
 
-  const updateQty = (id, delta) => {
+  const updateQty = (id, delta) => {s
     const newCart = cart.map((item) =>
       item.id === id
         ? { ...item, qty: Math.max(1, item.qty + delta) }

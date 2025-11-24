@@ -1,13 +1,15 @@
-const mysql = require('mysql2');
+const mysql = require("mysql2");
+require("dotenv").config();
 
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'a2_coffee_haui',
-  password: '@!Dung15112005',   // giống hệt lúc bạn CREATE USER
-  database: 'a2_snack',
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
 
+// Dùng pool.promise() để dùng async/await
 module.exports = pool.promise();
