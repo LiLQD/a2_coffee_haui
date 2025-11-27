@@ -118,9 +118,12 @@ body {
   background: #f0f3ff;
 }
 
+<<<<<<< HEAD
 /* ============================================================
    CATEGORY NAV
 ============================================================ */
+=======
+>>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
 .nav-categories {
   display: flex;
   gap: 10px;
@@ -136,6 +139,10 @@ body {
   border: none;
   font-size: 15px;
   cursor: pointer;
+<<<<<<< HEAD
+=======
+  color:black;
+>>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
 }
 
 .nav-item.active,
@@ -219,9 +226,12 @@ body {
   background: #3b5bdb;
 }
 
+<<<<<<< HEAD
 /* ============================================================
    PRODUCT MODAL
 ============================================================ */
+=======
+>>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
 .modal-backdrop {
   position: fixed;
   inset: 0;
