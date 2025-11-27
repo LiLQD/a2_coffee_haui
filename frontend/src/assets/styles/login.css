@@ -67,8 +67,8 @@ html, body {
   border-radius: 6px;
 }
 
-/* BUTTON */
-button {
+
+.login-form button {
   width: 100%;
   background-color: #007bff;
   color: white;
@@ -79,8 +79,17 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+.login-form button:hover {
   background-color: #0056b3;
+}
+
+/* nút Đăng ký */
+.login-form .register {
+  background-color: #28a745;
+}
+
+.login-form .register:hover {
+  background-color: #218838;
 }
 
 .register {
@@ -111,4 +120,69 @@ button:hover {
   flex-direction: column;
   align-items: center;   /* logo + form nằm chính giữa cột của mình */
   justify-content: center;
+}
+.nav-categories {
+  display: flex;              /* nằm ngang */
+  gap: 12px;
+  padding: 8px 16px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Nút danh mục */
+.nav-item {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #e0ecff;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;        /* không xuống dòng */
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-item:hover {
+  background: #cbd9ff;
+}
+
+.nav-item.active {
+  background: #2563eb;
+  color: #fff;
+}
+.product-footer {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Giá */
+.product-price {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* Nút thêm */
+.add-cart-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: auto;            /* quan trọng: không full width */
+  min-width: 80px;
+  text-align: center;
+}
+
+.add-cart-btn:hover {
+  background: #1d4ed8;
 }

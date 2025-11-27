@@ -1,15 +1,11 @@
 const express = require("express");
 const cors = require("cors");
-<<<<<<< HEAD
 require("dotenv").config();
 
-=======
->>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
 const routes = require("./routes");
 
 const app = express();
 
-<<<<<<< HEAD
 // Middleware chung
 app.use(cors());             
 app.use(express.json());      
@@ -24,7 +20,6 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api", routes);
 
-=======
 app.use(cors());
 app.use(express.json());
 
@@ -38,5 +33,4 @@ app.use((err, req, res, next) => {
     .json({ message: err.message || "Internal Server Error" });
 });
 
->>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
 module.exports = app;

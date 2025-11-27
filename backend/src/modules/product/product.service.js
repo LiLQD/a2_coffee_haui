@@ -1,93 +1,21 @@
 // src/modules/product/product.service.js
 const productDao = require("./product.dao");
+const categoryDao = require("../category/category.dao");
 
-<<<<<<< HEAD
-// Lấy danh sách sản phẩm (tùy chọn chỉ lấy active)
-async function getProducts(options = {}) {
-  const { activeOnly = false } = options;
+function baseNormalize(payload) {
+  const name = String(payload.name || "").trim();
+  const price = Number(payload.price);
 
-  if (activeOnly) {
-    return productDao.findAllActive();
-  }
-  return productDao.findAll();
-}
-
-// Lấy chi tiết 1 sản phẩm
-async function getProductById(id) {
-  const product = await productDao.findById(id);
-  if (!product) {
-    const error = new Error("Không tìm thấy sản phẩm");
-    error.status = 404;
-    throw error;
-  }
-  return product;
-}
-
-// Tạo mới sản phẩm
-async function createProduct(payload) {
-  // Validate tối thiểu
-  if (!payload.name || payload.name.trim() === "") {
-    const error = new Error("Tên sản phẩm không được để trống");
-    error.status = 400;
-    throw error;
+  if (!name || Number.isNaN(price)) {
+    const err = new Error("Tên và giá sản phẩm là bắt buộc");
+    err.statusCode = 400;
+    throw err;
   }
 
-  if (payload.price == null || isNaN(Number(payload.price))) {
-    const error = new Error("Giá sản phẩm không hợp lệ");
-    error.status = 400;
-    throw error;
-  }
-
-  const productToCreate = {
-    name: payload.name.trim(),
-    description: payload.description || "",
-    price: Number(payload.price),
-    image_url: payload.image_url || null,
-    is_active: payload.is_active != null ? Number(payload.is_active) : 1,
-    category_id: payload.category_id || null,
-  };
-
-  return productDao.create(productToCreate);
-}
-
-// Cập nhật sản phẩm
-async function updateProduct(id, payload) {
-  const existing = await productDao.findById(id);
-  if (!existing) {
-    const error = new Error("Không tìm thấy sản phẩm để cập nhật");
-    error.status = 404;
-    throw error;
-  }
-
-  const productToUpdate = {
-    name: payload.name != null ? payload.name : existing.name,
-    description: payload.description != null ? payload.description : existing.description,
-    price: payload.price != null ? Number(payload.price) : existing.price,
-    image_url: payload.image_url != null ? payload.image_url : existing.image_url,
-    is_active: payload.is_active != null ? Number(payload.is_active) : existing.is_active,
-    category_id: payload.category_id != null ? payload.category_id : existing.category_id,
-  };
-
-  return productDao.update(id, productToUpdate);
-}
-
-// Xoá sản phẩm
-async function deleteProduct(id) {
-  const existing = await productDao.findById(id);
-  if (!existing) {
-    const error = new Error("Không tìm thấy sản phẩm để xoá");
-    error.status = 404;
-    throw error;
-  }
-  await productDao.remove(id);
-  return;
-=======
-function normalizeProduct(payload) {
   return {
-    name: String(payload.name).trim(),
-    price: Number(payload.price),
-    category: payload.category ? String(payload.category).trim() : "Khác",
+    name,
     description: payload.description || "",
+    price,
     image_url: payload.image_url || payload.imageUrl || "",
     is_active:
       payload.is_active !== undefined
@@ -96,6 +24,30 @@ function normalizeProduct(payload) {
         ? !!payload.available
         : true,
   };
+}
+
+async function resolveCategoryId(payload) {
+  // Ưu tiên category_id nếu có
+  if (payload.category_id) {
+    return Number(payload.category_id);
+  }
+  // Nếu có tên category (CSV / UI)
+  if (payload.category) {
+    const name = String(payload.category).trim();
+    if (!name) return null;
+
+    // cache/memoization có thể thêm sau, tuỳ nhu cầu
+    let cat = await categoryDao.findByName(name);
+    if (!cat) {
+      cat = await categoryDao.create({
+        name,
+        description: "",
+        is_active: 1,
+      });
+    }
+    return cat.id;
+  }
+  return null;
 }
 
 async function getProducts(activeOnly) {
@@ -107,12 +59,20 @@ async function getProductById(id) {
 }
 
 async function createProduct(payload) {
-  const product = normalizeProduct(payload);
-  if (!product.name || Number.isNaN(product.price)) {
-    const err = new Error("Tên và giá là bắt buộc");
+  const base = baseNormalize(payload);
+  const category_id = await resolveCategoryId(payload);
+
+  if (!category_id) {
+    const err = new Error("Thiếu danh mục (category hoặc category_id)");
     err.statusCode = 400;
     throw err;
   }
+
+  const product = {
+    category_id,
+    ...base,
+  };
+
   return productDao.create(product);
 }
 
@@ -124,7 +84,16 @@ async function updateProduct(id, payload) {
     throw err;
   }
 
-  const product = normalizeProduct({ ...existing, ...payload });
+  const base = baseNormalize({ ...existing, ...payload });
+  let category_id = existing.category_id;
+
+  // Cho phép đổi category qua category_id hoặc category name
+  const resolvedCategoryId = await resolveCategoryId(payload);
+  if (resolvedCategoryId) {
+    category_id = resolvedCategoryId;
+  }
+
+  const product = { category_id, ...base };
   return productDao.update(id, product);
 }
 
@@ -134,14 +103,49 @@ async function deleteProduct(id) {
 
 // Bulk import từ CSV / UI admin
 async function bulkImport(list) {
-  const normalized = list
-    .map(normalizeProduct)
-    .filter((p) => p.name && !Number.isNaN(p.price));
+  if (!Array.isArray(list) || !list.length) return 0;
 
-  if (!normalized.length) return 0;
+  const cache = {}; // map categoryName -> category_id
+  const rows = [];
 
-  return productDao.bulkInsert(normalized);
->>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
+  for (const raw of list) {
+    try {
+      const base = baseNormalize(raw);
+
+      let categoryName =
+        raw.category && String(raw.category).trim().length > 0
+          ? String(raw.category).trim()
+          : "Khác";
+
+      let category_id = raw.category_id ? Number(raw.category_id) : null;
+
+      if (!category_id) {
+        if (!cache[categoryName]) {
+          let cat = await categoryDao.findByName(categoryName);
+          if (!cat) {
+            cat = await categoryDao.create({
+              name: categoryName,
+              description: "",
+              is_active: 1,
+            });
+          }
+          cache[categoryName] = cat.id;
+        }
+        category_id = cache[categoryName];
+      }
+
+      rows.push({
+        category_id,
+        ...base,
+      });
+    } catch (e) {
+      // nếu 1 dòng CSV lỗi (thiếu name/price), bỏ qua
+      console.warn("Bỏ qua dòng import lỗi:", e.message);
+    }
+  }
+
+  if (!rows.length) return 0;
+  return productDao.bulkInsert(rows);
 }
 
 module.exports = {
@@ -150,8 +154,5 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-<<<<<<< HEAD
-=======
   bulkImport,
->>>>>>> 5ab40d942e35bf6b135285a6ae9564ea86848a0f
 };

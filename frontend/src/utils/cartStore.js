@@ -1,32 +1,33 @@
-const KEY = "cartItems";
+// src/utils/cartStore.js
+const STORAGE_KEY = "a2_cart";
 
 export function getCart() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-  catch { return []; }
-}
-
-export function setCart(items) {
-  localStorage.setItem(KEY, JSON.stringify(items));
-}
-
-export function addToCart(item, qty = 1) {
-  const cart = getCart();
-  const existed = cart.find((c) => c.id === item.id);
-
-  if (existed) {
-    existed.qty += qty;
-  } else {
-    cart.push({ ...item, qty });
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("getCart error:", e);
+    return [];
   }
-
-  setCart(cart);
 }
 
-
-export function getCartCount() {
-  return getCart().reduce((sum, item) => sum + item.qty, 0);
+export function setCart(cart) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+  } catch (e) {
+    console.error("setCart error:", e);
+  }
 }
 
 export function clearCart() {
-  localStorage.removeItem(KEY);
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error("clearCart error:", e);
+  }
 }

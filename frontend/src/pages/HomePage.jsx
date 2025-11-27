@@ -5,15 +5,10 @@ import { useNavigate } from "react-router-dom";
 import "../assets/styles/home.css";
 import hauiLogo from "../assets/images/haui-logo.png";
 
-// gọi API lấy sản phẩm từ backend
 import { fetchProducts } from "../services/productApi";
-
-// dùng chung cart với CartPage (nếu tên hàm khác thì sửa lại cho khớp)
 import { getCart, setCart } from "../utils/cartStore";
 
-/**
- * Hàm bỏ dấu tiếng Việt + về chữ thường để search dễ hơn
- */
+// bỏ dấu & về chữ thường để search
 function normalize(str) {
   if (!str) return "";
   return str
@@ -26,32 +21,33 @@ function normalize(str) {
 export default function HomePage() {
   const navigate = useNavigate();
 
-  // tạm thời hard-code, sau này thay bằng role từ Auth
+  // tạm thời hard-code role admin
   const isAdmin = true;
 
-  // STATE CHÍNH
-  const [items, setItems] = useState([]);              // tất cả món
-  const [filteredItems, setFilteredItems] = useState([]); // danh sách sau lọc
-  const [categories, setCategories] = useState([]);    // danh sách danh mục
+  // data
+  const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // STATE UI
+  // UI state
   const [search, setSearch] = useState("");
-  const [active, setActive] = useState("Tất cả");
-
+  const [activeCategory, setActiveCategory] = useState("Tất cả");
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
 
+  // cart
   const [cartCount, setCartCount] = useState(0);
 
+  // modal chi tiết món
   const [selectedItem, setSelectedItem] = useState(null);
   const [qty, setQty] = useState(1);
 
-  // --------------------------------------------------
-  // 1. Lấy dữ liệu sản phẩm từ backend
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
+  // 1. Load sản phẩm từ backend + khởi tạo cartCount
+  // ------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -60,23 +56,20 @@ export default function HomePage() {
         setLoading(true);
         setError(null);
 
-        // chỉ lấy món đang bật
-        const products = await fetchProducts(true);
+        const products = await fetchProducts(true); // chỉ lấy món active
 
         if (cancelled) return;
 
         setItems(products);
         setFilteredItems(products);
 
-        // lấy danh mục từ trường category hoặc category_id
+        // tạo danh sách category từ dữ liệu
         const cats = Array.from(
-          new Set(
-            products.map((p) => p.category || p.category_id || "Khác")
-          )
+          new Set(products.map((p) => p.category || p.category_id || "Khác"))
         );
         setCategories(cats);
       } catch (err) {
-        console.error(err);
+        console.error("Lỗi loadProducts:", err);
         if (!cancelled) {
           setError(err.message || "Không tải được menu");
         }
@@ -87,13 +80,15 @@ export default function HomePage() {
 
     loadProducts();
 
-    // khởi tạo cartCount từ localStorage (nếu đã có dữ liệu)
+    // khởi tạo cartCount từ localStorage
     try {
-      const cart = getCart ? getCart() : [];
-      const total = Array.isArray(cart)
-        ? cart.reduce((sum, item) => sum + (item.quantity || 1), 0)
-        : 0;
+      const cart = getCart();
+      const total = cart.reduce(
+        (sum, item) => sum + (item.quantity || 1),
+        0
+      );
       setCartCount(total);
+      console.log("Cart initial:", cart);
     } catch (e) {
       console.warn("Không đọc được cart từ localStorage:", e);
     }
@@ -103,37 +98,31 @@ export default function HomePage() {
     };
   }, []);
 
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
   // 2. Lọc theo danh mục + search
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
   useEffect(() => {
     const q = normalize(search);
 
     const result = items.filter((item) => {
-      // lọc theo danh mục
       const cat = item.category || item.category_id || "Khác";
-      if (active !== "Tất cả" && cat !== active) return false;
+      if (activeCategory !== "Tất cả" && cat !== activeCategory) return false;
 
-      // lọc theo search
       if (!q) return true;
 
       const name = normalize(item.name);
       const desc = normalize(item.description);
       const catNorm = normalize(String(cat));
 
-      return (
-        name.includes(q) ||
-        desc.includes(q) ||
-        catNorm.includes(q)
-      );
+      return name.includes(q) || desc.includes(q) || catNorm.includes(q);
     });
 
     setFilteredItems(result);
-  }, [items, search, active]);
+  }, [items, search, activeCategory]);
 
-  // --------------------------------------------------
-  // 3. Xử lý click ngoài dropdown "Thêm"
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
+  // 3. Đóng dropdown ngoài vùng click
+  // ------------------------------------------------------------------
   useEffect(() => {
     function handleClickOutside(e) {
       if (moreRef.current && !moreRef.current.contains(e.target)) {
@@ -144,44 +133,53 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --------------------------------------------------
-  // 4. Hàm tiện ích
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
+  // 4. Các handler
+  // ------------------------------------------------------------------
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
 
   const selectCategory = (cat) => {
-    setActive(cat);
+    setActiveCategory(cat);
   };
 
+  // >>>>>>> QUAN TRỌNG: thêm vào giỏ sử dụng cartStore (localStorage)
   const handleAddToCart = (product) => {
     try {
-      const cart = getCart ? getCart() : [];
+      // đọc giỏ hiện tại
+      const cart = getCart();
 
-      const existingIndex = cart.findIndex((c) => c.id === product.id);
-      if (existingIndex >= 0) {
-        cart[existingIndex].quantity =
-          (cart[existingIndex].quantity || 1) + 1;
+      // tìm xem đã có món này chưa
+      const index = cart.findIndex((c) => c.id === product.id);
+      if (index >= 0) {
+        cart[index].quantity = (cart[index].quantity || 1) + 1;
       } else {
-        cart.push({ ...product, quantity: 1 });
+        cart.push({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          image_url: product.image_url || product.imageUrl || null,
+          quantity: 1,
+        });
       }
 
-      if (setCart) {
-        setCart(cart);
-      } else {
-        // fallback nếu bạn chưa dùng cartStore
-        localStorage.setItem("cart", JSON.stringify(cart));
-      }
+      // lưu lại
+      setCart(cart);
 
+      // cập nhật badge
       const total = cart.reduce(
         (sum, item) => sum + (item.quantity || 1),
         0
       );
       setCartCount(total);
-      alert("Đã thêm vào giỏ hàng");
+
+      console.log("Cart after add:", cart);
+      // optional: alert nhỏ
+      // alert("Đã thêm vào giỏ hàng");
     } catch (err) {
-      console.error(err);
+      console.error("Không thêm được vào giỏ hàng:", err);
       alert("Không thêm được vào giỏ hàng");
     }
   };
@@ -212,9 +210,9 @@ export default function HomePage() {
     navigate("/bulkimport");
   };
 
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
   // 5. JSX
-  // --------------------------------------------------
+  // ------------------------------------------------------------------
   return (
     <div className="home-container">
       {/* HEADER */}
@@ -243,12 +241,15 @@ export default function HomePage() {
             )}
           </button>
 
-          {/* Lịch sử đơn / hoá đơn giả định */}
-          <button className="icon-button" onClick={() => alert("Chưa làm!")}>
+          {/* Hoá đơn giả lập */}
+          <button
+            className="icon-button"
+            onClick={() => alert("Chức năng hoá đơn chưa làm")}
+          >
             📜
           </button>
 
-          {/* Admin + dropdown thêm */}
+          {/* Menu dành cho admin */}
           {isAdmin && (
             <div className="dropdown" ref={moreRef}>
               <button
@@ -259,9 +260,7 @@ export default function HomePage() {
               </button>
               {moreOpen && (
                 <div className="dropdown-menu">
-                  <button onClick={goToBulkImport}>
-                    📥 Bulk import món
-                  </button>
+                  <button onClick={goToBulkImport}>📥 Bulk import món</button>
                 </div>
               )}
             </div>
@@ -272,7 +271,9 @@ export default function HomePage() {
       {/* NAV DANH MỤC */}
       <nav className="nav-categories">
         <button
-          className={`nav-item ${active === "Tất cả" ? "active" : ""}`}
+          className={`nav-item ${
+            activeCategory === "Tất cả" ? "active" : ""
+          }`}
           onClick={() => selectCategory("Tất cả")}
         >
           Tất cả
@@ -280,7 +281,7 @@ export default function HomePage() {
         {categories.map((cat) => (
           <button
             key={cat}
-            className={`nav-item ${active === cat ? "active" : ""}`}
+            className={`nav-item ${activeCategory === cat ? "active" : ""}`}
             onClick={() => selectCategory(cat)}
           >
             {cat}
@@ -288,7 +289,7 @@ export default function HomePage() {
         ))}
       </nav>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <main className="home-main">
         {loading && <p>Đang tải menu...</p>}
         {error && <p className="error-text">{error}</p>}
@@ -325,7 +326,7 @@ export default function HomePage() {
                   <button
                     className="add-cart-btn"
                     onClick={(e) => {
-                      e.stopPropagation(); // tránh mở modal
+                      e.stopPropagation(); // không mở modal
                       handleAddToCart(item);
                     }}
                   >
@@ -338,7 +339,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* MODAL CHI TIẾT + CHỌN SỐ LƯỢNG */}
+      {/* MODAL CHI TIẾT */}
       {selectedItem && (
         <div className="modal-backdrop" onClick={closeDetailModal}>
           <div
@@ -360,7 +361,9 @@ export default function HomePage() {
                 type="number"
                 min={1}
                 value={qty}
-                onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
+                onChange={(e) =>
+                  setQty(Math.max(1, Number(e.target.value)))
+                }
               />
             </div>
 
