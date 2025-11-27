@@ -4,19 +4,16 @@ const controller = require("./product.controller");
 
 const router = express.Router();
 
-// Danh sách sản phẩm (có thể truyền ?activeOnly=true)
+// /api/products
 router.get("/", controller.handleGetProducts);
 
-// Chi tiết 1 sản phẩm
+// Bulk import: POST /api/products/bulk
+router.post("/bulk", controller.handleBulkImport);
+
+// Các route theo id
 router.get("/:id", controller.handleGetProductById);
-
-// Tạo mới sản phẩm
 router.post("/", controller.handleCreateProduct);
-
-// Cập nhật sản phẩm
 router.put("/:id", controller.handleUpdateProduct);
-
-// Xoá sản phẩm
 router.delete("/:id", controller.handleDeleteProduct);
 
 module.exports = router;

@@ -1,72 +1,62 @@
 // src/modules/product/product.controller.js
 const productService = require("./product.service");
 
-// GET /api/products?activeOnly=true
-async function handleGetProducts(req, res) {
+async function handleGetProducts(req, res, next) {
   try {
     const activeOnly = req.query.activeOnly === "true";
-    const products = await productService.getProducts({ activeOnly });
-    res.json({ success: true, data: products });
+    const products = await productService.getProducts(activeOnly);
+    res.json(products);
   } catch (err) {
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ success: false, message: err.message || "Lỗi server" });
+    next(err);
   }
 }
 
-// GET /api/products/:id
-async function handleGetProductById(req, res) {
+async function handleGetProductById(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    const product = await productService.getProductById(id);
-    res.json({ success: true, data: product });
+    const product = await productService.getProductById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+    }
+    res.json(product);
   } catch (err) {
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ success: false, message: err.message || "Lỗi server" });
+    next(err);
   }
 }
 
-// POST /api/products
-async function handleCreateProduct(req, res) {
+async function handleCreateProduct(req, res, next) {
   try {
-    const newProduct = await productService.createProduct(req.body);
-    res.status(201).json({ success: true, data: newProduct });
+    const created = await productService.createProduct(req.body);
+    res.status(201).json(created);
   } catch (err) {
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ success: false, message: err.message || "Lỗi server" });
+    next(err);
   }
 }
 
-// PUT /api/products/:id
-async function handleUpdateProduct(req, res) {
+async function handleUpdateProduct(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    const updated = await productService.updateProduct(id, req.body);
-    res.json({ success: true, data: updated });
+    const updated = await productService.updateProduct(req.params.id, req.body);
+    res.json(updated);
   } catch (err) {
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ success: false, message: err.message || "Lỗi server" });
+    next(err);
   }
 }
 
-// DELETE /api/products/:id
-async function handleDeleteProduct(req, res) {
+async function handleDeleteProduct(req, res, next) {
   try {
-    const id = Number(req.params.id);
-    await productService.deleteProduct(id);
-    res.json({ success: true });
+    await productService.deleteProduct(req.params.id);
+    res.status(204).end();
   } catch (err) {
-    console.error(err);
-    res
-      .status(err.status || 500)
-      .json({ success: false, message: err.message || "Lỗi server" });
+    next(err);
+  }
+}
+
+async function handleBulkImport(req, res, next) {
+  try {
+    const list = Array.isArray(req.body) ? req.body : [];
+    const count = await productService.bulkImport(list);
+    res.json({ imported: count });
+  } catch (err) {
+    next(err);
   }
 }
 
@@ -76,4 +66,5 @@ module.exports = {
   handleCreateProduct,
   handleUpdateProduct,
   handleDeleteProduct,
+  handleBulkImport,
 };

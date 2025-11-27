@@ -1,74 +1,83 @@
 // src/modules/product/product.dao.js
 const db = require("../../config/db");
 
-// Lấy tất cả sản phẩm (bao gồm cả is_active = 0 nếu cần)
-async function findAll() {
-  const [rows] = await db.query(
-    `SELECT id, name, description, price, image_url, is_active, category_id
-     FROM products`
-  );
+// Lấy tất cả sản phẩm, optional filter activeOnly
+async function findAll({ activeOnly } = {}) {
+  let sql = "SELECT id, name, price, category, description, image_url, is_active FROM products";
+  const params = [];
+
+  if (activeOnly) {
+    sql += " WHERE is_active = 1";
+  }
+
+  const [rows] = await db.query(sql, params);
   return rows;
 }
 
-// Lấy tất cả sản phẩm đang bật (is_active = 1)
-async function findAllActive() {
-  const [rows] = await db.query(
-    `SELECT id, name, description, price, image_url, is_active, category_id
-     FROM products
-     WHERE is_active = 1`
-  );
-  return rows;
-}
-
-// Lấy 1 sản phẩm theo id
 async function findById(id) {
   const [rows] = await db.query(
-    `SELECT id, name, description, price, image_url, is_active, category_id
-     FROM products
-     WHERE id = ?`,
+    "SELECT id, name, price, category, description, image_url, is_active FROM products WHERE id = ?",
     [id]
   );
   return rows[0] || null;
 }
 
-// Thêm sản phẩm mới
 async function create(product) {
-  const { name, description, price, image_url, is_active, category_id } = product;
+  const { name, price, category, description, image_url, is_active } = product;
 
   const [result] = await db.query(
-    `INSERT INTO products (name, description, price, image_url, is_active, category_id)
+    `INSERT INTO products (name, price, category, description, image_url, is_active)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [name, description, price, image_url, is_active, category_id]
+    [name, price, category, description || "", image_url || "", is_active ? 1 : 0]
   );
 
-  // Trả về bản ghi vừa tạo
-  return findById(result.insertId);
+  return { id: result.insertId, ...product };
 }
 
-// Cập nhật sản phẩm
 async function update(id, product) {
-  const { name, description, price, image_url, is_active, category_id } = product;
+  const { name, price, category, description, image_url, is_active } = product;
 
   await db.query(
     `UPDATE products
-     SET name = ?, description = ?, price = ?, image_url = ?, is_active = ?, category_id = ?
+       SET name = ?, price = ?, category = ?, description = ?, image_url = ?, is_active = ?
      WHERE id = ?`,
-    [name, description, price, image_url, is_active, category_id, id]
+    [name, price, category, description || "", image_url || "", is_active ? 1 : 0, id]
   );
 
-  return findById(id);
+  return { id, ...product };
 }
 
-// Xoá sản phẩm
 async function remove(id) {
-  await db.query(`DELETE FROM products WHERE id = ?`, [id]);
+  await db.query("DELETE FROM products WHERE id = ?", [id]);
+}
+
+// Bulk insert: nhận 1 mảng sản phẩm
+async function bulkInsert(products) {
+  if (!products.length) return 0;
+
+  const values = products.map((p) => [
+    p.name,
+    p.price,
+    p.category,
+    p.description || "",
+    p.image_url || "",
+    p.is_active ? 1 : 0,
+  ]);
+
+  const [result] = await db.query(
+    `INSERT INTO products (name, price, category, description, image_url, is_active)
+     VALUES ?`,
+    [values]
+  );
+
+  return result.affectedRows;
 }
 
 module.exports = {
   findAll,
-  findAllActive,
   findById,
   create,
   update,
   remove,
+  bulkInsert,
 };

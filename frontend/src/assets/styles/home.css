@@ -118,9 +118,6 @@ body {
   background: #f0f3ff;
 }
 
-/* ============================================================
-   CATEGORY NAV
-============================================================ */
 .nav-categories {
   display: flex;
   gap: 10px;
@@ -136,6 +133,7 @@ body {
   border: none;
   font-size: 15px;
   cursor: pointer;
+  color:black;
 }
 
 .nav-item.active,
@@ -219,9 +217,6 @@ body {
   background: #3b5bdb;
 }
 
-/* ============================================================
-   PRODUCT MODAL
-============================================================ */
 .modal-backdrop {
   position: fixed;
   inset: 0;
