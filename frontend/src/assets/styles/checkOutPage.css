@@ -1,48 +1,157 @@
-.checkout-container {
-  padding: 20px;
-  max-width: 500px;
-  margin: auto;
+/* Nền tổng thể giống screenshot: gradient nhẹ, form ở giữa */
+
+.checkout-page {
+  min-height: 100vh;
+  padding: 48px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: linear-gradient(135deg, #e0d0c7, #f6ede8, #d6c5bc);
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
+
+/* Card chính */
+
+.checkout-card {
+  width: 100%;
+  max-width: 640px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px 28px 32px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.12);
+}
+
+/* Nút quay lại */
+
+.checkout-back {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.checkout-back:hover {
+  text-decoration: underline;
+}
+
+/* tiêu đề */
+
+.checkout-title {
+  text-align: center;
+  margin: 8px 0 24px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333333;
+}
+
+/* Form và input */
 
 .checkout-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  gap: 14px;
 }
 
-.checkout-form input,
-.checkout-form textarea,
-.checkout-form select {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+.checkout-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.confirm-btn {
-  margin-top: 15px;
-  padding: 12px;
-  background: #ff5722;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-/*back button*/
-.back-btn {
-  background: #ddd;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-bottom: 15px;
+.checkout-label {
   font-size: 14px;
+  font-weight: 600;
+  color: #444444;
 }
 
-.back-btn:hover {
-  background: #ccc;
+.checkout-input,
+.checkout-textarea,
+.checkout-select {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #dddddd;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fafafa;
+}
+
+.checkout-input:focus,
+.checkout-textarea:focus,
+.checkout-select:focus {
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
+  background-color: #ffffff;
+}
+
+.checkout-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Tổng tiền */
+
+.checkout-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.checkout-summary span {
+  color: #555555;
+}
+
+.checkout-summary strong {
+  color: #e5533b;
+  font-size: 17px;
+}
+
+/* Nút submit */
+
+.checkout-submit {
+  margin-top: 18px;
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #ff6b35, #ff9242);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease,
+    opacity 0.15s ease;
+  box-shadow: 0 8px 22px rgba(255, 107, 53, 0.35);
+}
+
+.checkout-submit:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(255, 107, 53, 0.4);
+}
+
+.checkout-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(255, 107, 53, 0.3);
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .checkout-card {
+    padding: 20px 18px 24px;
+    border-radius: 14px;
+  }
+
+  .checkout-title {
+    font-size: 21px;
+  }
 }

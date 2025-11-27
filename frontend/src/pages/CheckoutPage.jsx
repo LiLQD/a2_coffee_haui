@@ -1,165 +1,173 @@
+// src/pages/CheckoutPage.jsx
 import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../assets/styles/checkOutPage.css";
-import { getCart, clearCart } from "../utils/cartStore";
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+import { getCart } from "../utils/cartStore";
 
 export default function CheckoutPage() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const cart = getCart ? getCart() : [];
 
-  const totalAmount = useMemo(
-    () =>
-      (Array.isArray(cart) ? cart : []).reduce(
-        (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
-        0
-      ),
-    [cart]
+  // Ưu tiên cart truyền từ CartPage qua state, nếu không thì đọc lại từ localStorage
+  const cartFromState = location.state?.cart;
+
+  const cart = useMemo(() => {
+    if (Array.isArray(cartFromState) && cartFromState.length > 0) {
+      return cartFromState;
+    }
+    try {
+      const stored = getCart ? getCart() : [];
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  }, [cartFromState]);
+
+  const totalAmount = cart.reduce(
+    (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
+    0
   );
 
   const [form, setForm] = useState({
-    name: "",
-    phone: "",
+    fullName: "Nguyễn Văn A",
+    email: "example@gmail.com",
+    phone: "0901234567",
     address: "",
-    email: "",
+    receiveTime: "",
+    note: "",
     payment_method: "CASH_ON_DELIVERY",
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleBack = () => {
-    navigate("/cart");
+  const handleChange = (field) => (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!cart || !cart.length) {
-      alert("Giỏ hàng đang trống.");
+    if (!cart.length) {
+      alert("Giỏ hàng đang trống, hãy chọn món trước.");
+      navigate("/cart");
       return;
     }
 
-    try {
-      const payload = {
-        userId: 1, // tạm thời hard-code; sau nối với hệ thống đăng nhập
-        customer: {
-          name: form.name,
-          phone: form.phone,
-          address: form.address,
-          email: form.email,
-          payment_method: form.payment_method,
-        },
-        items: cart.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity || 1,
-          unitPrice: Number(item.price) || 0,
-        })),
-        totalAmount,
-      };
-
-      const res = await fetch(`${API_BASE}/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Create order failed:", text);
-        alert("Tạo đơn hàng thất bại. Vui lòng thử lại.");
-        return;
-      }
-
-      const data = await res.json();
-      console.log("Order created:", data);
-
-      // Xoá giỏ + quay về trang chủ (hoặc trang cảm ơn)
-      if (clearCart) clearCart();
-      alert("Đặt món thành công!");
-      navigate("/home");
-    } catch (err) {
-      console.error(err);
-      alert("Có lỗi xảy ra khi gửi đơn hàng.");
-    }
+    // Ở bước này chỉ submit giả, phần gọi API tạo order sẽ làm sau
+    alert(
+      `Đặt hàng demo thành công!\nTổng tiền: ${totalAmount.toLocaleString(
+        "vi-VN"
+      )} đ\n\nSau này sẽ gọi API /api/orders ở bước này.`
+    );
   };
 
   return (
-    <div className="checkout-container">
-      <button className="back-btn" type="button" onClick={handleBack}>
-        ← Quay lại giỏ hàng
-      </button>
-
-      <form className="checkout-form" onSubmit={handleSubmit}>
-        <h2>Thông tin đặt hàng</h2>
-
-        <label>
-          Họ và tên
-          <input
-            name="name"
-            type="text"
-            value={form.name}
-            onChange={handleChange}
-            required
-          />
-        </label>
-
-        <label>
-          Số điện thoại
-          <input
-            name="phone"
-            type="tel"
-            value={form.phone}
-            onChange={handleChange}
-            required
-          />
-        </label>
-
-        <label>
-          Địa chỉ giao hàng
-          <textarea
-            name="address"
-            rows={3}
-            value={form.address}
-            onChange={handleChange}
-            required
-          />
-        </label>
-
-        <label>
-          Email (không bắt buộc)
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-          />
-        </label>
-
-        <label>
-          Phương thức thanh toán
-          <select
-            name="payment_method"
-            value={form.payment_method}
-            onChange={handleChange}
-          >
-            <option value="CASH_ON_DELIVERY">Thanh toán khi nhận hàng</option>
-            <option value="MOCK">Thanh toán giả lập (test)</option>
-          </select>
-        </label>
-
-        <div>
-          <strong>Tổng tiền: {totalAmount.toLocaleString("vi-VN")} đ</strong>
-        </div>
-
-        <button className="confirm-btn" type="submit">
-          Xác nhận đặt món
+    <div className="checkout-page">
+      <div className="checkout-card">
+        {/* Link quay lại giỏ hàng */}
+        <button
+          type="button"
+          className="checkout-back"
+          onClick={() => navigate("/cart")}
+        >
+          ← Quay lại giỏ hàng
         </button>
-      </form>
+
+        <h1 className="checkout-title">Thông tin thanh toán</h1>
+
+        <form className="checkout-form" onSubmit={handleSubmit}>
+          <div className="checkout-form-group">
+            <label className="checkout-label">Họ và tên</label>
+            <input
+              type="text"
+              className="checkout-input"
+              value={form.fullName}
+              onChange={handleChange("fullName")}
+              required
+            />
+          </div>
+
+          <div className="checkout-form-group">
+            <label className="checkout-label">Email</label>
+            <input
+              type="email"
+              className="checkout-input"
+              value={form.email}
+              onChange={handleChange("email")}
+            />
+          </div>
+
+          <div className="checkout-form-group">
+            <label className="checkout-label">Số điện thoại</label>
+            <input
+              type="tel"
+              className="checkout-input"
+              value={form.phone}
+              onChange={handleChange("phone")}
+              required
+            />
+          </div>
+
+          <div className="checkout-form-group">
+            <label className="checkout-label">Địa chỉ giao hàng</label>
+            <input
+              type="text"
+              className="checkout-input"
+              placeholder="Số nhà, đường, phường/xã..."
+              value={form.address}
+              onChange={handleChange("address")}
+              required
+            />
+          </div>
+
+          <div className="checkout-form-group">
+            <label className="checkout-label">Thời gian nhận hàng (ghi chú)</label>
+            <input
+              type="text"
+              className="checkout-input"
+              placeholder="Ví dụ: Thứ 7 sau 14h, hoặc sáng Chủ nhật..."
+              value={form.receiveTime}
+              onChange={handleChange("receiveTime")}
+            />
+          </div>
+
+          <div className="checkout-form-group">
+            <label className="checkout-label">Ghi chú thêm</label>
+            <textarea
+              className="checkout-textarea"
+              rows={3}
+              placeholder="Yêu cầu đặc biệt, chuông hỏng, gửi bưu điện..."
+              value={form.note}
+              onChange={handleChange("note")}
+            />
+          </div>
+
+          <div className="checkout-form-group">
+            <label className="checkout-label">Phương thức thanh toán</label>
+            <select
+              className="checkout-select"
+              value={form.payment_method}
+              onChange={handleChange("payment_method")}
+            >
+              <option value="CASH_ON_DELIVERY">
+                Thanh toán khi nhận hàng (COD)
+              </option>
+              <option value="MOCK">Thanh toán thử (mock)</option>
+            </select>
+          </div>
+
+          {/* Tổng tiền */}
+          <div className="checkout-summary">
+            <span>Tổng tiền:</span>
+            <strong>{totalAmount.toLocaleString("vi-VN")} đ</strong>
+          </div>
+
+          <button type="submit" className="checkout-submit">
+            Xác nhận đặt hàng
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
