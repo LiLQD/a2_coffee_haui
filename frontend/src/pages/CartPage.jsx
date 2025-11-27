@@ -1,42 +1,54 @@
-// src/pages/CartPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import "../assets/styles/cartPage.css";
 import { getCart, setCart, clearCart } from "../utils/cartStore";
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState([]);
+  const [cart, setCartState] = useState([]);
 
-  // load giỏ từ localStorage
+  // Load cart từ localStorage
   useEffect(() => {
-    const current = getCart();
-    console.log("CartPage initial cart:", current);
-    setItems(current);
+    const stored = getCart ? getCart() : [];
+    setCartState(Array.isArray(stored) ? stored : []);
   }, []);
 
-  const updateCart = (newItems) => {
-    setItems(newItems);
-    setCart(newItems);
+  // Tính tổng tiền
+  const totalAmount = useMemo(
+    () =>
+      cart.reduce(
+        (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
+        0
+      ),
+    [cart]
+  );
+
+  const syncCart = (nextCart) => {
+    setCartState(nextCart);
+    if (setCart) {
+      setCart(nextCart);
+    } else {
+      localStorage.setItem("cart", JSON.stringify(nextCart));
+    }
   };
 
-  const handleChangeQty = (index, newQty) => {
-    const qty = Math.max(1, Number(newQty) || 1);
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], quantity: qty };
-    updateCart(newItems);
+  const handleQtyChange = (index, value) => {
+    const qty = Math.max(1, Number(value) || 1);
+    const next = [...cart];
+    next[index] = { ...next[index], quantity: qty };
+    syncCart(next);
   };
 
   const handleRemove = (index) => {
-    const newItems = items.filter((_, i) => i !== index);
-    updateCart(newItems);
+    const next = cart.filter((_, i) => i !== index);
+    syncCart(next);
   };
 
-  const handleClear = () => {
+  const handleClearAll = () => {
+    if (!cart.length) return;
     if (!window.confirm("Xoá toàn bộ giỏ hàng?")) return;
-    clearCart();
-    setItems([]);
+    syncCart([]);
+    if (clearCart) clearCart();
   };
 
   const handleBackToMenu = () => {
@@ -44,18 +56,17 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
-    // sau này sẽ gọi backend /order
-    alert("Chức năng thanh toán sẽ làm ở bước sau.");
+    if (!cart.length) {
+      alert("Giỏ hàng đang trống.");
+      return;
+    }
+    navigate("/checkout");
   };
-
-  const totalAmount = items.reduce(
-    (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
-    0
-  );
 
   return (
     <div className="cart-page">
       <div className="cart-card">
+        {/* Header */}
         <div className="cart-header">
           <h2>Giỏ hàng</h2>
           <button className="link-button" onClick={handleBackToMenu}>
@@ -63,37 +74,44 @@ export default function CartPage() {
           </button>
         </div>
 
-        {items.length === 0 ? (
+        {/* Empty state */}
+        {cart.length === 0 && (
           <div className="cart-empty">
             <p>Giỏ hàng đang trống.</p>
             <button className="primary-btn" onClick={handleBackToMenu}>
               Đặt món ngay
             </button>
           </div>
-        ) : (
+        )}
+
+        {/* Danh sách item */}
+        {cart.length > 0 && (
           <>
             <div className="cart-items">
-              {items.map((item, idx) => (
-                <div className="cart-item" key={item.id ?? idx}>
+              {cart.map((item, index) => (
+                <div className="cart-item" key={item.id ?? index}>
                   <div className="cart-item-left">
-                    {item.image_url && (
+                    {item.image_url || item.imageUrl ? (
                       <img
-                        src={item.image_url}
-                        alt={item.name}
                         className="cart-item-image"
+                        src={item.image_url || item.imageUrl}
+                        alt={item.name}
                       />
+                    ) : (
+                      <div className="cart-item-image" />
                     )}
+
                     <div>
                       <div className="cart-item-name">{item.name}</div>
                       <div className="cart-item-desc">
-                        {item.description}
+                        {item.description || ""}
                       </div>
                     </div>
                   </div>
 
                   <div className="cart-item-right">
                     <div className="cart-item-price">
-                      {Number(item.price).toLocaleString("vi-VN")} đ
+                      {(Number(item.price) || 0).toLocaleString("vi-VN")} đ
                     </div>
 
                     <div className="cart-item-qty">
@@ -103,22 +121,22 @@ export default function CartPage() {
                         min={1}
                         value={item.quantity || 1}
                         onChange={(e) =>
-                          handleChangeQty(idx, e.target.value)
+                          handleQtyChange(index, e.target.value)
                         }
                       />
                     </div>
 
                     <div className="cart-item-subtotal">
                       {(
-                        Number(item.price || 0) *
-                        (item.quantity || 1)
+                        (Number(item.price) || 0) * (item.quantity || 1)
                       ).toLocaleString("vi-VN")}{" "}
                       đ
                     </div>
 
                     <button
                       className="danger-btn"
-                      onClick={() => handleRemove(idx)}
+                      type="button"
+                      onClick={() => handleRemove(index)}
                     >
                       Xoá
                     </button>
@@ -127,18 +145,27 @@ export default function CartPage() {
               ))}
             </div>
 
+            {/* Footer */}
             <div className="cart-footer">
               <div className="cart-total">
                 Tổng tiền:{" "}
-                <strong>
-                  {totalAmount.toLocaleString("vi-VN")} đ
-                </strong>
+                <strong>{totalAmount.toLocaleString("vi-VN")} đ</strong>
               </div>
+
               <div className="cart-footer-actions">
-                <button className="secondary-btn" onClick={handleClear}>
+                
+                <button
+                  className="danger-btn"
+                  type="button"
+                  onClick={handleClearAll}
+                >
                   Xoá hết
                 </button>
-                <button className="primary-btn" onClick={handleCheckout}>
+                <button
+                  className="primary-btn"
+                  type="button"
+                  onClick={handleCheckout}
+                >
                   Đặt món
                 </button>
               </div>

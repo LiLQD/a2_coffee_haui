@@ -1,80 +1,165 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom"; 
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../assets/styles/checkOutPage.css";
+import { getCart, clearCart } from "../utils/cartStore";
 
-export default function Checkout() {
-  const [info, setInfo] = useState({
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
+export default function CheckoutPage() {
+  const navigate = useNavigate();
+  const cart = getCart ? getCart() : [];
+
+  const totalAmount = useMemo(
+    () =>
+      (Array.isArray(cart) ? cart : []).reduce(
+        (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
+        0
+      ),
+    [cart]
+  );
+
+  const [form, setForm] = useState({
     name: "",
-    email: "",
     phone: "",
     address: "",
-    time: "",        // để trống, người dùng sẽ tự ghi text
-    note: "",
-    payment: "cod"
+    email: "",
+    payment_method: "CASH_ON_DELIVERY",
   });
 
-  const navigate = useNavigate(); // Thêm để có thể điều hướng
-
   const handleChange = (e) => {
-    setInfo({ ...info, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
-    alert("Đặt hàng thành công!\n\n" + JSON.stringify(info, null, 2));
+  const handleBack = () => {
+    navigate("/cart");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!cart || !cart.length) {
+      alert("Giỏ hàng đang trống.");
+      return;
+    }
+
+    try {
+      const payload = {
+        userId: 1, // tạm thời hard-code; sau nối với hệ thống đăng nhập
+        customer: {
+          name: form.name,
+          phone: form.phone,
+          address: form.address,
+          email: form.email,
+          payment_method: form.payment_method,
+        },
+        items: cart.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity || 1,
+          unitPrice: Number(item.price) || 0,
+        })),
+        totalAmount,
+      };
+
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Create order failed:", text);
+        alert("Tạo đơn hàng thất bại. Vui lòng thử lại.");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Order created:", data);
+
+      // Xoá giỏ + quay về trang chủ (hoặc trang cảm ơn)
+      if (clearCart) clearCart();
+      alert("Đặt món thành công!");
+      navigate("/home");
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi xảy ra khi gửi đơn hàng.");
+    }
   };
 
   return (
     <div className="checkout-container">
-      {/* Nút quay lại giỏ hàng – giờ đã hoạt động */}
-      <button className="back-btn" onClick={() => navigate("/cart")}>
-        Quay lại giỏ hàng
+      <button className="back-btn" type="button" onClick={handleBack}>
+        ← Quay lại giỏ hàng
       </button>
 
-      <h2>Thông tin thanh toán</h2>
+      <form className="checkout-form" onSubmit={handleSubmit}>
+        <h2>Thông tin đặt hàng</h2>
 
-      <div className="checkout-form">
-        <label>Họ và tên</label>
-        <input name="name" value={info.name} onChange={handleChange} placeholder="Nguyễn Văn A" />
+        <label>
+          Họ và tên
+          <input
+            name="name"
+            type="text"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+        </label>
 
-        <label>Email</label>
-        <input name="email" type="email" value={info.email} onChange={handleChange} placeholder="example@gmail.com" />
+        <label>
+          Số điện thoại
+          <input
+            name="phone"
+            type="tel"
+            value={form.phone}
+            onChange={handleChange}
+            required
+          />
+        </label>
 
-        <label>Số điện thoại</label>
-        <input name="phone" value={info.phone} onChange={handleChange} placeholder="0901234567" />
+        <label>
+          Địa chỉ giao hàng
+          <textarea
+            name="address"
+            rows={3}
+            value={form.address}
+            onChange={handleChange}
+            required
+          />
+        </label>
 
-        <label>Địa chỉ giao hàng</label>
-        <input name="address" value={info.address} onChange={handleChange} placeholder="Số nhà, đường, phường/xã..." />
+        <label>
+          Email (không bắt buộc)
+          <input
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+          />
+        </label>
 
-        {/* Thay datetime-local bằng input text bình thường */}
-        <label>Thời gian nhận hàng (ghi chú)</label>
-        <input
-          name="time"
-          value={info.time}
-          onChange={handleChange}
-          placeholder="Ví dụ: Thứ 7 sau 14h, hoặc sáng Chủ nhật..."
-        />
+        <label>
+          Phương thức thanh toán
+          <select
+            name="payment_method"
+            value={form.payment_method}
+            onChange={handleChange}
+          >
+            <option value="CASH_ON_DELIVERY">Thanh toán khi nhận hàng</option>
+            <option value="MOCK">Thanh toán giả lập (test)</option>
+          </select>
+        </label>
 
-        <label>Ghi chú thêm</label>
-        <textarea
-          name="note"
-          value={info.note}
-          onChange={handleChange}
-          rows="3"
-          placeholder="Yêu cầu đặc biệt, chuông hỏng, gửi bưu điện..."
-        ></textarea>
+        <div>
+          <strong>Tổng tiền: {totalAmount.toLocaleString("vi-VN")} đ</strong>
+        </div>
 
-        <label>Phương thức thanh toán</label>
-        <select name="payment" value={info.payment} onChange={handleChange}>
-          <option value="cod">Thanh toán khi nhận hàng (COD)</option>
-          <option value="bank">Chuyển khoản ngân hàng</option>
-          <option value="momo">Momo</option>
-          <option value="vnpay">VNPay</option>
-        </select>
-
-        <button className="confirm-btn" onClick={handleSubmit}>
-          Xác nhận đặt hàng
+        <button className="confirm-btn" type="submit">
+          Xác nhận đặt món
         </button>
-      </div>
+      </form>
     </div>
   );
 }
