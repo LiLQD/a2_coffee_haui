@@ -5,6 +5,10 @@ import LoginPage from "./pages/LoginPage.jsx";
 import CartPage from "./pages/CartPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";   // <-- thêm
 import BulkImport from "./pages/BulkImport.jsx";
+import OrderHistory from "./pages/OrderHistory.jsx";
+
+
+
 
 function AppRoutes() {
   return (
@@ -15,6 +19,7 @@ function AppRoutes() {
       <Route path="/checkout" element={<CheckoutPage />} />  {/* <-- thêm */}
       <Route path="/bulkimport" element={<BulkImport />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/orders" element={<OrderHistory />} />
     </Routes>
   );
 }
