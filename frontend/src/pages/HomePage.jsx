@@ -8,7 +8,7 @@ import hauiLogo from "../assets/images/haui-logo.png";
 import { fetchProducts } from "../services/productApi";
 import { getCart, setCart } from "../utils/cartStore";
 
-// bỏ dấu & về chữ thường để search
+// Hàm chuẩn hoá để tìm kiếm (bỏ dấu, về chữ thường)
 function normalize(str) {
   if (!str) return "";
   return str
@@ -16,6 +16,24 @@ function normalize(str) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d");
+}
+
+// Build đường dẫn ảnh từ tên file / URL
+function getProductImage(imageNameOrUrl) {
+  if (!imageNameOrUrl) return null;
+
+  // URL đầy đủ hoặc path tuyệt đối
+  if (imageNameOrUrl.startsWith("http") || imageNameOrUrl.startsWith("/")) {
+    return imageNameOrUrl;
+  }
+
+  // Tên file nằm trong src/assets/images
+  try {
+    return new URL(`../assets/images/${imageNameOrUrl}`, import.meta.url).href;
+  } catch (e) {
+    console.warn("Không tìm thấy ảnh:", imageNameOrUrl, e);
+    return null;
+  }
 }
 
 export default function HomePage() {
@@ -45,9 +63,7 @@ export default function HomePage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [qty, setQty] = useState(1);
 
-  // ------------------------------------------------------------------
   // 1. Load sản phẩm từ backend + khởi tạo cartCount
-  // ------------------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -83,10 +99,7 @@ export default function HomePage() {
     // khởi tạo cartCount từ localStorage
     try {
       const cart = getCart();
-      const total = cart.reduce(
-        (sum, item) => sum + (item.quantity || 1),
-        0
-      );
+      const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
       setCartCount(total);
       console.log("Cart initial:", cart);
     } catch (e) {
@@ -98,9 +111,7 @@ export default function HomePage() {
     };
   }, []);
 
-  // ------------------------------------------------------------------
   // 2. Lọc theo danh mục + search
-  // ------------------------------------------------------------------
   useEffect(() => {
     const q = normalize(search);
 
@@ -120,9 +131,7 @@ export default function HomePage() {
     setFilteredItems(result);
   }, [items, search, activeCategory]);
 
-  // ------------------------------------------------------------------
   // 3. Đóng dropdown ngoài vùng click
-  // ------------------------------------------------------------------
   useEffect(() => {
     function handleClickOutside(e) {
       if (moreRef.current && !moreRef.current.contains(e.target)) {
@@ -133,9 +142,7 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ------------------------------------------------------------------
-  // 4. Các handler
-  // ------------------------------------------------------------------
+  // ------------------- HANDLER -------------------
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
@@ -144,13 +151,11 @@ export default function HomePage() {
     setActiveCategory(cat);
   };
 
-  // >>>>>>> QUAN TRỌNG: thêm vào giỏ sử dụng cartStore (localStorage)
+  // Thêm vào giỏ sử dụng cartStore (localStorage)
   const handleAddToCart = (product) => {
     try {
-      // đọc giỏ hiện tại
       const cart = getCart();
 
-      // tìm xem đã có món này chưa
       const index = cart.findIndex((c) => c.id === product.id);
       if (index >= 0) {
         cart[index].quantity = (cart[index].quantity || 1) + 1;
@@ -165,19 +170,12 @@ export default function HomePage() {
         });
       }
 
-      // lưu lại
       setCart(cart);
 
-      // cập nhật badge
-      const total = cart.reduce(
-        (sum, item) => sum + (item.quantity || 1),
-        0
-      );
+      const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
       setCartCount(total);
 
       console.log("Cart after add:", cart);
-      // optional: alert nhỏ
-      // alert("Đã thêm vào giỏ hàng");
     } catch (err) {
       console.error("Không thêm được vào giỏ hàng:", err);
       alert("Không thêm được vào giỏ hàng");
@@ -210,9 +208,12 @@ export default function HomePage() {
     navigate("/bulkimport");
   };
 
-  // ------------------------------------------------------------------
-  // 5. JSX
-  // ------------------------------------------------------------------
+  const goToOrderHistory = () => {
+    // trang lịch sử đơn hàng
+    navigate("/orders");
+  };
+
+  // ------------------- JSX -------------------
   return (
     <div className="home-container">
       {/* HEADER */}
@@ -236,16 +237,11 @@ export default function HomePage() {
           {/* Giỏ hàng */}
           <button className="icon-button" onClick={goToCart}>
             🛒
-            {cartCount > 0 && (
-              <span className="cart-badge">{cartCount}</span>
-            )}
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
 
-          {/* Hoá đơn giả lập */}
-          <button
-            className="icon-button"
-            onClick={() => alert("Chức năng hoá đơn chưa làm")}
-          >
+          {/* Lịch sử đơn */}
+          <button className="icon-button" onClick={goToOrderHistory}>
             📜
           </button>
 
@@ -271,9 +267,7 @@ export default function HomePage() {
       {/* NAV DANH MỤC */}
       <nav className="nav-categories">
         <button
-          className={`nav-item ${
-            activeCategory === "Tất cả" ? "active" : ""
-          }`}
+          className={`nav-item ${activeCategory === "Tất cả" ? "active" : ""}`}
           onClick={() => selectCategory("Tất cả")}
         >
           Tất cả
@@ -281,7 +275,9 @@ export default function HomePage() {
         {categories.map((cat) => (
           <button
             key={cat}
-            className={`nav-item ${activeCategory === cat ? "active" : ""}`}
+            className={`nav-item ${
+              activeCategory === cat ? "active" : ""
+            }`}
             onClick={() => selectCategory(cat)}
           >
             {cat}
@@ -299,43 +295,49 @@ export default function HomePage() {
         )}
 
         <div className="product-grid">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="product-card"
-              onClick={() => openDetailModal(item)}
-            >
-              <div className="product-image-wrapper">
-                {item.image_url || item.imageUrl ? (
-                  <img
-                    src={item.image_url || item.imageUrl}
-                    alt={item.name}
-                    className="product-image"
-                  />
-                ) : (
-                  <div className="product-image placeholder">No Image</div>
-                )}
-              </div>
-              <div className="product-info">
-                <h3 className="product-name">{item.name}</h3>
-                <p className="product-desc">{item.description}</p>
-                <div className="product-footer">
-                  <span className="product-price">
-                    {Number(item.price).toLocaleString("vi-VN")} đ
-                  </span>
-                  <button
-                    className="add-cart-btn"
-                    onClick={(e) => {
-                      e.stopPropagation(); // không mở modal
-                      handleAddToCart(item);
-                    }}
-                  >
-                    Thêm
-                  </button>
+          {filteredItems.map((item) => {
+            const imgSrc = getProductImage(
+              item.image_url || item.imageUrl || null
+            );
+
+            return (
+              <div
+                key={item.id}
+                className="product-card"
+                onClick={() => openDetailModal(item)}
+              >
+                <div className="product-image-wrapper">
+                  {imgSrc ? (
+                    <img
+                      src={imgSrc}
+                      alt={item.name}
+                      className="product-image"
+                    />
+                  ) : (
+                    <div className="product-image placeholder">No Image</div>
+                  )}
+                </div>
+                <div className="product-info">
+                  <h3 className="product-name">{item.name}</h3>
+                  <p className="product-desc">{item.description}</p>
+                  <div className="product-footer">
+                    <span className="product-price">
+                      {Number(item.price).toLocaleString("vi-VN")} đ
+                    </span>
+                    <button
+                      className="add-cart-btn"
+                      onClick={(e) => {
+                        e.stopPropagation(); // không mở modal
+                        handleAddToCart(item);
+                      }}
+                    >
+                      Thêm
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 

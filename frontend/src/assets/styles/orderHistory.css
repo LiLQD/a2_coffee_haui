@@ -1,0 +1,141 @@
+/* --- Layout tổng --- */
+.oh-wrapper {
+  max-width: 850px;
+  margin: 30px auto;
+  padding: 15px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* --- Header --- */
+.oh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.oh-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.oh-back-btn {
+  background: #eee;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+.oh-back-btn:hover {
+  background: #ddd;
+}
+
+/* --- Khi không có đơn --- */
+.oh-empty {
+  text-align: center;
+  margin-top: 40px;
+  opacity: 0.7;
+}
+
+.oh-empty img {
+  width: 120px;
+  margin-bottom: 15px;
+}
+
+/* --- Danh sách đơn hàng --- */
+.oh-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --- Thẻ đơn hàng --- */
+.oh-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  border: 1px solid #f0f0f0;
+  transition: transform 0.2s;
+}
+
+.oh-card:hover {
+  transform: translateY(-4px);
+}
+
+/* --- Header đơn hàng --- */
+.oh-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.oh-order-id {
+  margin: 0;
+  font-size: 20px;
+}
+
+.oh-date {
+  margin-top: 4px;
+  color: #888;
+  font-size: 14px;
+}
+
+.oh-total {
+  font-size: 22px;
+  font-weight: bold;
+  color: #d35400;
+}
+
+/* --- Thông tin khách hàng --- */
+.oh-info {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+/* --- Danh sách sản phẩm --- */
+.oh-items {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.oh-item-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.oh-item-img {
+  width: 55px;
+  height: 55px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 12px;
+}
+
+.oh-item-info {
+  flex: 1;
+}
+
+.oh-item-name {
+  font-weight: 600;
+}
+
+.oh-item-qty {
+  color: #777;
+  font-size: 14px;
+}
+
+.oh-item-price {
+  font-weight: 600;
+  font-size: 16px;
+  color: #444;
+}

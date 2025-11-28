@@ -2,7 +2,13 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../assets/styles/checkOutPage.css";
-import { getCart } from "../utils/cartStore";
+import { getCart, setCart } from "../utils/cartStore";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
+// Tạm thời mock userId; sau này thay bằng user login thực tế
+const MOCK_USER_ID = 1;
 
 export default function CheckoutPage() {
   const location = useLocation();
@@ -38,6 +44,8 @@ export default function CheckoutPage() {
     payment_method: "CASH_ON_DELIVERY",
   });
 
+  const [submitting, setSubmitting] = useState(false);
+
   const handleChange = (field) => (e) => {
     setForm((prev) => ({
       ...prev,
@@ -54,12 +62,57 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Ở bước này chỉ submit giả, phần gọi API tạo order sẽ làm sau
-    alert(
-      `Đặt hàng demo thành công!\nTổng tiền: ${totalAmount.toLocaleString(
-        "vi-VN"
-      )} đ\n\nSau này sẽ gọi API /api/orders ở bước này.`
-    );
+    const payload = {
+      userId: MOCK_USER_ID,
+      customer: {
+        name: form.fullName,
+        phone: form.phone,
+        address: form.address,
+        email: form.email,
+        payment_method: form.payment_method,
+        note: form.note,
+        receiveTime: form.receiveTime,
+      },
+      items: cart.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity || 1,
+        unitPrice: item.price || 0,
+      })),
+      totalAmount,
+    };
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch(`${API_BASE_URL}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const order = data?.data?.order;
+
+      alert(
+        `Đặt hàng thành công!\nMã đơn: ${
+          order?.id ?? "N/A"
+        }\nTổng tiền: ${totalAmount.toLocaleString("vi-VN")} đ`
+      );
+
+      // Xoá giỏ hàng local
+      setCart([]);
+      // Điều hướng sang lịch sử đơn hàng
+      navigate("/orders");
+    } catch (err) {
+      console.error("Lỗi đặt hàng:", err);
+      alert("Đặt hàng thất bại, vui lòng thử lại sau.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -122,7 +175,9 @@ export default function CheckoutPage() {
           </div>
 
           <div className="checkout-form-group">
-            <label className="checkout-label">Thời gian nhận hàng (ghi chú)</label>
+            <label className="checkout-label">
+              Thời gian nhận hàng (ghi chú)
+            </label>
             <input
               type="text"
               className="checkout-input"
@@ -163,8 +218,12 @@ export default function CheckoutPage() {
             <strong>{totalAmount.toLocaleString("vi-VN")} đ</strong>
           </div>
 
-          <button type="submit" className="checkout-submit">
-            Xác nhận đặt hàng
+          <button
+            type="submit"
+            className="checkout-submit"
+            disabled={submitting}
+          >
+            {submitting ? "Đang xử lý..." : "Xác nhận đặt hàng"}
           </button>
         </form>
       </div>
