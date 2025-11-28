@@ -186,3 +186,8 @@ html, body {
 .add-cart-btn:hover {
   background: #1d4ed8;
 }
+.login-error {
+  color: #d9534f;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
