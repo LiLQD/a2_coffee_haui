@@ -1,23 +1,33 @@
 // src/routes/index.js
 const express = require("express");
-const router = express.Router();
 
 const productRoutes = require("../modules/product/product.routes");
 const cartRoutes = require("../modules/cart/cart.routes");
-const orderRoutes = require("../modules/order/order.routes"); // <-- THÊM DÒNG NÀY
+const orderRoutes = require("../modules/order/order.routes");
+const authRoutes = require("../modules/auth/auth.routes");
+
+const router = express.Router();
 
 // Health check
 router.get("/health", (req, res) => {
-  res.json({ message: "API root" });
+  res.json({ status: "ok" });
 });
 
-// Product service
+// Auth
+router.use("/auth", authRoutes);
+
+// Product / Menu
 router.use("/products", productRoutes);
 
-// Cart service
+// Cart
 router.use("/cart", cartRoutes);
 
-// Order service
-router.use("/orders", orderRoutes); // <-- THÊM DÒNG NÀY
+// Orders
+router.use("/orders", orderRoutes);
+
+// Root
+router.get("/", (req, res) => {
+  res.json({ message: "API root" });
+});
 
 module.exports = router;

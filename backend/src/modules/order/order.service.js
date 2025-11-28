@@ -2,72 +2,60 @@
 const orderDao = require("./order.dao");
 
 /**
- * Validate payload từ frontend và gọi DAO để tạo đơn hàng
+ * Biz logic tạo đơn hàng
  */
 async function createOrder(payload) {
-  if (!payload) {
-    throw new Error("Payload rỗng");
+  if (!payload || !Array.isArray(payload.items) || payload.items.length === 0) {
+    throw new Error("Đơn hàng phải có ít nhất 1 sản phẩm");
   }
 
-  const { customer, items, totalAmount, userId } = payload;
-
-  if (!customer) {
-    throw new Error("Thiếu thông tin khách hàng");
-  }
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new Error("Giỏ hàng trống");
+  if (!payload.customer || !payload.customer.name || !payload.customer.phone) {
+    throw new Error("Thiếu thông tin khách hàng (tên / số điện thoại)");
   }
 
-  const { name, phone, address, payment_method, email } = customer;
+  // Tính lại totalAmount nếu cần (phòng trường hợp frontend gửi sai)
+  const computedTotal = payload.items.reduce((sum, it) => {
+    const qty = it.quantity || 1;
+    const unitPrice = it.unitPrice || it.unit_price || 0;
+    return sum + qty * unitPrice;
+  }, 0);
 
-  if (!name || !phone || !address) {
-    throw new Error("Họ tên, SĐT và địa chỉ là bắt buộc");
-  }
+  const totalAmount = payload.totalAmount || computedTotal;
 
-  const total = Number(totalAmount || 0);
-  if (!total || Number.isNaN(total)) {
-    throw new Error("Tổng tiền không hợp lệ");
-  }
+  const data = await orderDao.createOrder({
+    userId: payload.userId || null,
+    customer: payload.customer,
+    items: payload.items,
+    totalAmount,
+  });
 
-  const orderData = {
-    userId: userId || null,
-    customerName: name,
-    customerPhone: phone,
-    customerAddress: address,
-    totalAmount: total,
-    paymentMethod: payment_method || "MOCK",
-    customerEmail: email || null,
-  };
-
-  const normalizedItems = items.map((i) => ({
-    productId: i.productId,
-    quantity: Number(i.quantity || 1),
-    unitPrice: Number(i.unitPrice || 0),
-  }));
-
-  const orderId = await orderDao.createOrder(orderData, normalizedItems);
-  const full = await orderDao.findById(orderId);
-
-  return full;
+  return data;
 }
 
+/**
+ * Biz logic lấy chi tiết 1 order
+ */
 async function getOrderById(orderId) {
   const data = await orderDao.findById(orderId);
   if (!data) {
-    const err = new Error("Không tìm thấy đơn hàng");
-    err.statusCode = 404;
+    const err = new Error("Order not found");
+    err.status = 404;
     throw err;
   }
   return data;
 }
 
+/**
+ * Biz logic lấy danh sách order (order history)
+ */
 async function listOrders(query) {
-  const { userId, status } = query || {};
-  const rows = await orderDao.findAll({
-    userId: userId ? Number(userId) : undefined,
-    status,
-  });
-  return rows;
+  const filters = {
+    userId: query.userId ? Number(query.userId) : null,
+    status: query.status || null,
+  };
+
+  const data = await orderDao.findAll(filters);
+  return data;
 }
 
 module.exports = {

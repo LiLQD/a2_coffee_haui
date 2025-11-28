@@ -1,15 +1,20 @@
 // src/modules/order/order.routes.js
 const express = require("express");
+const {
+  handleCreateOrder,
+  handleGetOrderById,
+  handleListOrders,
+} = require("./order.controller");
+
 const router = express.Router();
-const orderController = require("./order.controller");
 
-// POST /api/orders  -> tạo đơn hàng
-router.post("/", orderController.handleCreateOrder);
+// Tạo đơn hàng
+router.post("/", handleCreateOrder);
 
-// GET /api/orders?userId=&status= -> list đơn
-router.get("/", orderController.handleListOrders);
+// Lấy danh sách đơn hàng (order history)
+router.get("/", handleListOrders);
 
-// GET /api/orders/:id -> chi tiết 1 đơn
-router.get("/:id", orderController.handleGetOrder);
+// Lấy chi tiết 1 đơn hàng
+router.get("/:id", handleGetOrderById);
 
 module.exports = router;

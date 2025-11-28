@@ -2,78 +2,126 @@
 const db = require("../../config/db");
 
 /**
- * Tạo order + order_items trong 1 transaction
- * @param {object} orderData  thông tin đơn hàng (user_id, customer_*, total_amount, ...)
- * @param {Array}  items      [{ productId, quantity, unitPrice }]
+ * Helper: map rows (order + items join) thành { order, items }
  */
-async function createOrder(orderData, items) {
+function mapOrderWithItems(rows) {
+  if (!rows || rows.length === 0) return null;
+
+  const first = rows[0];
+
+  const order = {
+    id: first.order_id,
+    user_id: first.user_id,
+    customer_name: first.customer_name,
+    customer_phone: first.customer_phone,
+    customer_address: first.customer_address,
+    total_amount: first.total_amount,
+    status: first.status,
+    payment_method: first.payment_method,
+    payment_status: first.payment_status,
+    payment_ref: first.payment_ref,
+    created_at: first.created_at,
+    updated_at: first.updated_at,
+  };
+
+  const items = rows
+    .filter((r) => r.item_id != null)
+    .map((r) => ({
+      id: r.item_id,
+      product_id: r.product_id,
+      quantity: r.quantity,
+      unit_price: r.unit_price,
+      subtotal: r.subtotal,
+      name: r.product_name,
+      description: r.product_description,
+      image_url: r.image_url,
+    }));
+
+  return { order, items };
+}
+
+/**
+ * Tạo đơn hàng + order_items trong transaction
+ * payload: { userId, customer, items, totalAmount }
+ */
+async function createOrder(payload) {
+  const { userId, customer, items, totalAmount } = payload;
   const conn = await db.getConnection();
 
   try {
     await conn.beginTransaction();
 
-    const {
-      userId,
-      customerName,
-      customerPhone,
-      customerAddress,
-      totalAmount,
-      paymentMethod,
-      customerEmail,
-      note,
-      timeNote,
-    } = orderData;
-
     const [orderResult] = await conn.query(
       `
-      INSERT INTO orders (
-        user_id,
-        customer_name,
-        customer_phone,
-        customer_address,
-        total_amount,
-        status,
-        payment_method,
-        payment_status,
-        payment_ref
-      )
+      INSERT INTO orders 
+        (user_id, customer_name, customer_phone, customer_address,
+         total_amount, status, payment_method, payment_status, payment_ref)
       VALUES (?, ?, ?, ?, ?, 'PENDING', ?, 'UNPAID', NULL)
     `,
       [
         userId || null,
-        customerName,
-        customerPhone,
-        customerAddress,
+        customer.name,
+        customer.phone,
+        customer.address,
         totalAmount,
-        paymentMethod || "MOCK",
+        customer.payment_method || "CASH_ON_DELIVERY",
       ]
     );
 
     const orderId = orderResult.insertId;
 
-    // Insert order_items
-    for (const item of items) {
-      const qty = Number(item.quantity || 1);
-      const price = Number(item.unitPrice || 0);
-      const subtotal = qty * price;
+    if (Array.isArray(items)) {
+      for (const it of items) {
+        const qty = it.quantity || 1;
+        const unitPrice = it.unitPrice || it.unit_price || 0;
+        const subtotal = qty * unitPrice;
 
-      await conn.query(
-        `
-        INSERT INTO order_items (
-          order_id,
-          product_id,
-          quantity,
-          unit_price,
-          subtotal
-        )
-        VALUES (?, ?, ?, ?, ?)
-      `,
-        [orderId, item.productId, qty, price, subtotal]
-      );
+        await conn.query(
+          `
+          INSERT INTO order_items
+            (order_id, product_id, quantity, unit_price, subtotal)
+          VALUES (?, ?, ?, ?, ?)
+        `,
+          [orderId, it.productId, qty, unitPrice, subtotal]
+        );
+      }
     }
 
     await conn.commit();
-    return orderId;
+
+    // Lấy lại order + items vừa tạo, join với products
+    const [rows] = await conn.query(
+      `
+      SELECT
+        o.id AS order_id,
+        o.user_id,
+        o.customer_name,
+        o.customer_phone,
+        o.customer_address,
+        o.total_amount,
+        o.status,
+        o.payment_method,
+        o.payment_status,
+        o.payment_ref,
+        o.created_at,
+        o.updated_at,
+        oi.id AS item_id,
+        oi.product_id,
+        oi.quantity,
+        oi.unit_price,
+        oi.subtotal,
+        p.name AS product_name,
+        p.description AS product_description,
+        p.image_url
+      FROM orders o
+      LEFT JOIN order_items oi ON oi.order_id = o.id
+      LEFT JOIN products p ON p.id = oi.product_id
+      WHERE o.id = ?
+    `,
+      [orderId]
+    );
+
+    return mapOrderWithItems(rows);
   } catch (err) {
     await conn.rollback();
     throw err;
@@ -83,71 +131,82 @@ async function createOrder(orderData, items) {
 }
 
 /**
- * Lấy 1 order + items theo id
+ * Lấy chi tiết 1 order theo id
  */
 async function findById(orderId) {
-  const [rowsOrder] = await db.query(
+  const [rows] = await db.query(
     `
-    SELECT *
-    FROM orders
-    WHERE id = ?
-  `,
-    [orderId]
-  );
-
-  if (rowsOrder.length === 0) return null;
-  const order = rowsOrder[0];
-
-  const [rowsItems] = await db.query(
-    `
-    SELECT 
-      oi.id,
+    SELECT
+      o.id AS order_id,
+      o.user_id,
+      o.customer_name,
+      o.customer_phone,
+      o.customer_address,
+      o.total_amount,
+      o.status,
+      o.payment_method,
+      o.payment_status,
+      o.payment_ref,
+      o.created_at,
+      o.updated_at,
+      oi.id AS item_id,
       oi.product_id,
       oi.quantity,
       oi.unit_price,
       oi.subtotal,
-      p.name,
-      p.description,
+      p.name AS product_name,
+      p.description AS product_description,
       p.image_url
-    FROM order_items oi
-    JOIN products p ON oi.product_id = p.id
-    WHERE oi.order_id = ?
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id = o.id
+    LEFT JOIN products p ON p.id = oi.product_id
+    WHERE o.id = ?
   `,
     [orderId]
   );
 
-  return { order, items: rowsItems };
+  return mapOrderWithItems(rows);
 }
 
 /**
- * Liệt kê order, có thể lọc theo userId / status
+ * Lấy danh sách đơn hàng (dùng cho Order History)
+ * filters: { userId, status }
  */
-async function findAll({ userId, status } = {}) {
-  const conditions = [];
-  const params = [];
+async function findAll(filters = {}) {
+  const { userId, status } = filters;
 
-  if (userId) {
-    conditions.push("user_id = ?");
-    params.push(userId);
-  }
-  if (status) {
-    conditions.push("status = ?");
-    params.push(status);
-  }
+  const sql = `
+    SELECT
+      o.id,
+      o.user_id,
+      o.customer_name,
+      o.customer_phone,
+      o.customer_address,
+      o.total_amount,
+      o.status,
+      o.payment_method,
+      o.payment_status,
+      o.created_at,
+      COUNT(oi.id) AS item_count
+    FROM orders o
+    LEFT JOIN order_items oi ON oi.order_id = o.id
+    WHERE ( ? IS NULL OR o.user_id = ? )
+      AND ( ? IS NULL OR o.status = ? )
+    GROUP BY
+      o.id, o.user_id, o.customer_name, o.customer_phone,
+      o.customer_address, o.total_amount, o.status,
+      o.payment_method, o.payment_status, o.created_at
+    ORDER BY o.created_at DESC
+  `;
 
-  const where =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const params = [
+    userId || null,
+    userId || null,
+    status || null,
+    status || null,
+  ];
 
-  const [rows] = await db.query(
-    `
-    SELECT *
-    FROM orders
-    ${where}
-    ORDER BY created_at DESC
-  `,
-    params
-  );
-
+  const [rows] = await db.query(sql, params);
   return rows;
 }
 
