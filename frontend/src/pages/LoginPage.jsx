@@ -1,41 +1,45 @@
 // src/pages/LoginPage.jsx
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-
 import "../assets/styles/login.css";
 import hauiLogo from "../assets/images/haui-logo.png";
+import { setUser } from "../utils/authStore";
 
-import { login } from "../services/authApi";
-import { saveUser } from "../utils/authStore";
+const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY;
 
 export default function LoginPage() {
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-    if (loading) return;
+    const form = e.currentTarget;
+    const username = form.username.value.trim();
+    const password = form.password.value.trim();
 
-    setError("");
-    setLoading(true);
-
-    try {
-      const user = await login(username.trim(), password.trim());
-
-      // Lưu user vào localStorage để các trang khác dùng userId
-      saveUser(user);
-
-      alert(`Đăng nhập thành công. Xin chào ${user.full_name || user.username}!`);
+    // Demo đơn giản:
+    // admin / 123  => ADMIN
+    // user  / 123  => CUSTOMER
+    if (username === "admin" && password === "123") {
+      // user admin có API key để gọi bulkimport
+      setUser({
+        id: 1,
+        username: "admin",
+        fullName: "Quản trị viên",
+        role: "ADMIN",
+        apiKey: ADMIN_API_KEY, // rất quan trọng!
+      });
       navigate("/home");
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Đăng nhập thất bại.");
-    } finally {
-      setLoading(false);
+    } else if (username === "user" && password === "123") {
+      // user thường không có apiKey
+      setUser({
+        id: 2,
+        username: "user",
+        fullName: "Khách hàng",
+        role: "CUSTOMER",
+      });
+      navigate("/home");
+    } else {
+      alert("Sai tài khoản hoặc mật khẩu (demo: admin/123 hoặc user/123)");
     }
   };
 
@@ -44,7 +48,7 @@ export default function LoginPage() {
       <div className="login-column">
         <h2 className="login-title">A2-COFFEE-HAUI</h2>
 
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleLogin}>
           <div className="form-row">
             <label htmlFor="username">Tên đăng nhập:</label>
             <input
@@ -52,8 +56,6 @@ export default function LoginPage() {
               id="username"
               name="username"
               placeholder="Nhập tên đăng nhập..."
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
@@ -65,26 +67,11 @@ export default function LoginPage() {
               id="password"
               name="password"
               placeholder="Nhập mật khẩu..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
 
-          {error && <p className="login-error">{error}</p>}
-
-          <button type="submit" disabled={loading}>
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
-
-          {/* Nút Đăng ký để đó (chưa triển khai) */}
-          <button
-            className="register"
-            type="button"
-            onClick={() => alert("Chức năng đăng ký sẽ làm sau.")}
-          >
-            Đăng ký
-          </button>
+          <button type="submit">Đăng nhập</button>
         </form>
       </div>
 

@@ -7,8 +7,11 @@ import hauiLogo from "../assets/images/haui-logo.png";
 
 import { fetchProducts } from "../services/productApi";
 import { getCart, setCart } from "../utils/cartStore";
+import { getUser } from "../utils/authStore";
 
-// Hàm chuẩn hoá để tìm kiếm (bỏ dấu, về chữ thường)
+/**
+ * Bỏ dấu tiếng Việt + lower-case để search
+ */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -18,16 +21,18 @@ function normalize(str) {
     .replace(/đ/g, "d");
 }
 
-// Build đường dẫn ảnh từ tên file / URL
+/**
+ * Build đường dẫn ảnh sản phẩm
+ * - Nếu là URL / path tuyệt đối thì dùng luôn
+ * - Nếu là tên file thì map vào thư mục assets/images
+ */
 function getProductImage(imageNameOrUrl) {
   if (!imageNameOrUrl) return null;
 
-  // URL đầy đủ hoặc path tuyệt đối
   if (imageNameOrUrl.startsWith("http") || imageNameOrUrl.startsWith("/")) {
     return imageNameOrUrl;
   }
 
-  // Tên file nằm trong src/assets/images
   try {
     return new URL(`../assets/images/${imageNameOrUrl}`, import.meta.url).href;
   } catch (e) {
@@ -38,14 +43,12 @@ function getProductImage(imageNameOrUrl) {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const currentUser = getUser(); // lấy user từ localStorage (login)
 
-  // tạm thời hard-code role admin
-  const isAdmin = true;
-
-  // data
-  const [items, setItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [categories, setCategories] = useState([]);
+  // Data chính
+  const [items, setItems] = useState([]); // tất cả món
+  const [filteredItems, setFilteredItems] = useState([]); // sau khi lọc
+  const [categories, setCategories] = useState([]); // danh mục
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,14 +59,16 @@ export default function HomePage() {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
 
-  // cart
+  // Cart state
   const [cartCount, setCartCount] = useState(0);
 
-  // modal chi tiết món
+  // Modal chi tiết món
   const [selectedItem, setSelectedItem] = useState(null);
   const [qty, setQty] = useState(1);
 
-  // 1. Load sản phẩm từ backend + khởi tạo cartCount
+  // --------------------------------------------------
+  // 1. Load menu + khởi tạo cartCount
+  // --------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -79,7 +84,6 @@ export default function HomePage() {
         setItems(products);
         setFilteredItems(products);
 
-        // tạo danh sách category từ dữ liệu
         const cats = Array.from(
           new Set(products.map((p) => p.category || p.category_id || "Khác"))
         );
@@ -96,7 +100,7 @@ export default function HomePage() {
 
     loadProducts();
 
-    // khởi tạo cartCount từ localStorage
+    // Khởi tạo cart từ localStorage
     try {
       const cart = getCart();
       const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -111,12 +115,15 @@ export default function HomePage() {
     };
   }, []);
 
-  // 2. Lọc theo danh mục + search
+  // --------------------------------------------------
+  // 2. Lọc theo danh mục + từ khoá search
+  // --------------------------------------------------
   useEffect(() => {
     const q = normalize(search);
 
     const result = items.filter((item) => {
       const cat = item.category || item.category_id || "Khác";
+
       if (activeCategory !== "Tất cả" && cat !== activeCategory) return false;
 
       if (!q) return true;
@@ -131,18 +138,23 @@ export default function HomePage() {
     setFilteredItems(result);
   }, [items, search, activeCategory]);
 
-  // 3. Đóng dropdown ngoài vùng click
+  // --------------------------------------------------
+  // 3. Đóng menu ⋮ khi click ra ngoài
+  // --------------------------------------------------
   useEffect(() => {
     function handleClickOutside(e) {
       if (moreRef.current && !moreRef.current.contains(e.target)) {
         setMoreOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ------------------- HANDLER -------------------
+  // --------------------------------------------------
+  // 4. Handler
+  // --------------------------------------------------
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
@@ -151,7 +163,6 @@ export default function HomePage() {
     setActiveCategory(cat);
   };
 
-  // Thêm vào giỏ sử dụng cartStore (localStorage)
   const handleAddToCart = (product) => {
     try {
       const cart = getCart();
@@ -204,16 +215,18 @@ export default function HomePage() {
     navigate("/cart");
   };
 
-  const goToBulkImport = () => {
-    navigate("/bulkimport");
-  };
-
   const goToOrderHistory = () => {
-    // trang lịch sử đơn hàng
     navigate("/orders");
   };
 
-  // ------------------- JSX -------------------
+  const goToBulkImport = () => {
+    // Nếu route bạn đang dùng là "/bulkimport" thì đổi lại cho khớp
+    navigate("/admin/bulkimport");
+  };
+
+  // --------------------------------------------------
+  // 5. JSX
+  // --------------------------------------------------
   return (
     <div className="home-container">
       {/* HEADER */}
@@ -240,13 +253,20 @@ export default function HomePage() {
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
 
-          {/* Lịch sử đơn */}
+          {/* Lịch sử đơn hàng */}
           <button className="icon-button" onClick={goToOrderHistory}>
             📜
           </button>
 
-          {/* Menu dành cho admin */}
-          {isAdmin && (
+          {/* Nút Bulk Import chỉ hiện với ADMIN */}
+          {currentUser?.role === "ADMIN" && (
+            <button className="bulkimport-btn" onClick={goToBulkImport}>
+              Bulk Import
+            </button>
+          )}
+
+          {/* Nếu bạn vẫn muốn giữ menu ⋮ cho admin, có thể để lại như dưới */}
+          {currentUser?.role === "ADMIN" && (
             <div className="dropdown" ref={moreRef}>
               <button
                 className="icon-button"
@@ -267,7 +287,9 @@ export default function HomePage() {
       {/* NAV DANH MỤC */}
       <nav className="nav-categories">
         <button
-          className={`nav-item ${activeCategory === "Tất cả" ? "active" : ""}`}
+          className={`nav-item ${
+            activeCategory === "Tất cả" ? "active" : ""
+          }`}
           onClick={() => selectCategory("Tất cả")}
         >
           Tất cả
@@ -327,7 +349,7 @@ export default function HomePage() {
                     <button
                       className="add-cart-btn"
                       onClick={(e) => {
-                        e.stopPropagation(); // không mở modal
+                        e.stopPropagation();
                         handleAddToCart(item);
                       }}
                     >

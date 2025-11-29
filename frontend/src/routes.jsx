@@ -1,14 +1,15 @@
-// src/routes.jsx (ví dụ)
+// src/routes.jsx
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import HomePage from "./pages/HomePage.jsx";
+
 import LoginPage from "./pages/LoginPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 import CartPage from "./pages/CartPage.jsx";
-import CheckoutPage from "./pages/CheckoutPage.jsx";   // <-- thêm
-import BulkImport from "./pages/BulkImport.jsx";
+import CheckoutPage from "./pages/CheckoutPage.jsx";
 import OrderHistory from "./pages/OrderHistory.jsx";
+import BulkImport from "./pages/BulkImport.jsx";
 
-
-
+import AdminRoute from "./components/AdminRoute.jsx";
 
 function AppRoutes() {
   return (
@@ -16,10 +17,21 @@ function AppRoutes() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/cart" element={<CartPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />  {/* <-- thêm */}
-      <Route path="/bulkimport" element={<BulkImport />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/orders" element={<OrderHistory />} />
+
+      {/* Chỉ ADMIN mới vào được */}
+      <Route
+        path="/admin/bulkimport"
+        element={
+          <AdminRoute>
+            <BulkImport />
+          </AdminRoute>
+        }
+      />
+
+      {/* fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

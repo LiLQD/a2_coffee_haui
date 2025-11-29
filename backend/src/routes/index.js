@@ -5,6 +5,7 @@ const productRoutes = require("../modules/product/product.routes");
 const cartRoutes = require("../modules/cart/cart.routes");
 const orderRoutes = require("../modules/order/order.routes");
 const authRoutes = require("../modules/auth/auth.routes");
+const bulkImportRoutes = require("../modules/bulkimport/bulkimport.routes");
 
 const router = express.Router();
 
@@ -24,6 +25,9 @@ router.use("/cart", cartRoutes);
 
 // Orders
 router.use("/orders", orderRoutes);
+
+// Bulk import (chỉ admin, đã chặn trong requireAdmin)
+router.use("/bulkimport", require("../modules/bulkimport/bulkimport.routes"));
 
 // Root
 router.get("/", (req, res) => {

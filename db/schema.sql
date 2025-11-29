@@ -142,7 +142,8 @@ INSERT INTO categories (name, description) VALUES
 
 INSERT INTO products (category_id, name, description, price, image_url)
 VALUES
-(1, 'Bánh mì trứng', 'Bánh mì pate trứng', 20000, '/images/banhmi_trung.jpg'),
-(1, 'Bánh mì xúc xích', 'Bánh mì xúc xích phô mai', 25000, '/images/banhmi_xucxich.jpg'),
-(2, 'Xôi xéo', 'Xôi xéo hành phi', 15000, '/images/xoi_xeo.jpg'),
-(3, 'Cà phê sữa đá', 'Ly cà phê sữa đá buổi sáng', 18000, '/images/cf_suada.jpg');
+(1, 'Bánh mì trứng', 'Bánh mì pate trứng', 20000, 'banhmi_trung.jpg'),
+(1, 'Bánh mì xúc xích', 'Bánh mì xúc xích phô mai', 25000, 'banhmi_xucxich.jpg'),
+(2, 'Xôi xéo', 'Xôi xéo hành phi', 15000, 'xoi_xeo.jpg'),
+(3, 'Cà phê sữa đá', 'Ly cà phê sữa đá buổi sáng', 18000, 'cf_suada.jpg');
+
