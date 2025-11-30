@@ -1,64 +1,59 @@
-// src/modules/product/product.controller.js
+// backend/src/modules/product/product.controller.js
 const productService = require("./product.service");
 
+// GET /api/products?activeOnly=true|false
 async function handleGetProducts(req, res, next) {
   try {
     const activeOnly = req.query.activeOnly === "true";
-    const products = await productService.getProducts(activeOnly);
-    res.json({ data: products });
+    const data = await productService.getProducts(activeOnly);
+    res.json({ data });
   } catch (err) {
+    console.error("handleGetProducts error:", err);
     next(err);
   }
 }
 
+// GET /api/products/:id
 async function handleGetProductById(req, res, next) {
   try {
-    const product = await productService.getProductById(req.params.id);
+    const id = Number(req.params.id);
+    const product = await productService.getProductById(id);
     if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+      return res.status(404).json({ error: "Không tìm thấy sản phẩm." });
     }
     res.json({ data: product });
   } catch (err) {
+    console.error("handleGetProductById error:", err);
     next(err);
   }
 }
 
-async function handleCreateProduct(req, res, next) {
-  try {
-    const created = await productService.createProduct(req.body);
-    res.status(201).json({ data: created });
-  } catch (err) {
-    next(err);
-  }
-}
-
+// PUT /api/products/:id  (admin)
 async function handleUpdateProduct(req, res, next) {
   try {
-    const updated = await productService.updateProduct(
-      req.params.id,
-      req.body
-    );
+    const id = Number(req.params.id);
+    const payload = req.body || {};
+
+    const updated = await productService.updateProduct(id, payload);
+    if (!updated) {
+      return res.status(404).json({ error: "Không tìm thấy sản phẩm." });
+    }
+
     res.json({ data: updated });
   } catch (err) {
+    console.error("handleUpdateProduct error:", err);
     next(err);
   }
 }
 
+// DELETE /api/products/:id (admin – xoá mềm)
 async function handleDeleteProduct(req, res, next) {
   try {
-    await productService.deleteProduct(req.params.id);
-    res.status(204).end();
+    const id = Number(req.params.id);
+    await productService.deleteProduct(id);
+    res.json({ data: { success: true } });
   } catch (err) {
-    next(err);
-  }
-}
-
-async function handleBulkImport(req, res, next) {
-  try {
-    const list = Array.isArray(req.body) ? req.body : [];
-    const count = await productService.bulkImport(list);
-    res.json({ imported: count });
-  } catch (err) {
+    console.error("handleDeleteProduct error:", err);
     next(err);
   }
 }
@@ -66,8 +61,6 @@ async function handleBulkImport(req, res, next) {
 module.exports = {
   handleGetProducts,
   handleGetProductById,
-  handleCreateProduct,
   handleUpdateProduct,
   handleDeleteProduct,
-  handleBulkImport,
 };

@@ -1,206 +1,270 @@
 // frontend/src/pages/BulkImport.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
-
 import "../assets/styles/bulkImport.css";
-
-import { getAdminApiKey } from "../utils/authStore";
-import { importProducts } from "../services/bulkImportApi";
+import { getUser } from "../utils/authStore";
+import {
+  importProducts,
+  updateProduct,
+  deleteProduct,
+} from "../services/bulkImportApi";
 import { fetchProducts } from "../services/productApi";
 
-/**
- * Chuẩn hoá 1 dòng CSV thành object chuẩn để gửi lên backend
- */
-function normalizeRow(row) {
-  return {
-    name: (row.name || "").trim(),
-    price: Number(row.price) || 0,
-    category: (row.category || "Khác").trim(),
-    description: (row.description || "").trim(),
-    imageUrl: row.imageUrl || row.image_url || null,
-    available: String(row.available ?? "true").toLowerCase(),
-  };
-}
+const BulkImport = () => {
+  const [previewRows, setPreviewRows] = useState([]);
+  const [dbProducts, setDbProducts] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
 
-export default function BulkImport() {
-  const [preview, setPreview] = useState([]);
-  const [serverItems, setServerItems] = useState([]);
+  // popup edit
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    price: "",
+    category: "",
+    description: "",
+    is_active: 1,
+  });
 
-  const [loading, setLoading] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [error, setError] = useState("");
-
-  const adminApiKey = getAdminApiKey();
-
-  // ----------------- LOAD MENU TỪ DB -----------------
-  const loadFromServer = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      // lấy tất cả sản phẩm, không chỉ active
-      const products = await fetchProducts(false);
-      setServerItems(products);
-    } catch (err) {
-      console.error(err);
-      setError("Không tải được danh sách món từ server");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const adminUser = getUser();
+  const adminApiKey = adminUser?.apiKey;
 
   useEffect(() => {
-    loadFromServer();
+    loadDbProducts();
   }, []);
 
-  // ----------------- TEMPLATE CSV -----------------
-  const downloadTemplate = () => {
-    const csv = "name,price,category,description,imageUrl,available\n";
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
+  async function loadDbProducts() {
+    try {
+      // Lấy tất cả (kể cả inactive)
+      const resp = await fetchProducts(false);
+      setDbProducts(resp);
+    } catch (err) {
+      console.error("Lỗi loadDbProducts:", err);
+      alert("Không load được danh sách món từ DB.");
+    }
+  }
 
+  function handleDownloadTemplate() {
+    const header =
+      "Tên,Giá,Danh mục,Mô tả,Hiển thị\n" +
+      "Bánh mì trứng,20000,Bánh mì,Bánh mì pate trứng,true\n" +
+      "Bánh mì thịt,25000,Bánh mì,Bánh mì thịt đầy đủ,true\n";
+
+    const blob = new Blob([header], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "template.csv";
+    a.download = "template_mon_an.csv";
     a.click();
-
     URL.revokeObjectURL(url);
-  };
+  }
 
-  // ----------------- XỬ LÝ FILE CSV -----------------
-  const handleFile = (file) => {
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedFile(file);
 
-    setError("");
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (res) => {
-        const rows = (res.data || [])
-          .map((row) => normalizeRow(row))
-          .filter((r) => r.name && r.price > 0);
+      complete(results) {
+        const rows = results.data
+          .map((row) => {
+            const name = (row["Tên"] || "").trim();
+            const price = Number(row["Giá"]);
+            const category = (row["Danh mục"] || "").trim();
+            const description = (row["Mô tả"] || "").trim();
+            const visibleRaw = (row["Hiển thị"] || "").toString().toLowerCase();
+            const is_active =
+              visibleRaw === "false" || visibleRaw === "0" ? false : true;
 
-        if (rows.length === 0) {
-          setError("File CSV không có dữ liệu hợp lệ.");
-        }
+            if (!name || !price || !category) return null;
 
-        setPreview(rows);
+            return {
+              name,
+              price,
+              category,
+              description,
+              is_active,
+            };
+          })
+          .filter(Boolean);
+
+        setPreviewRows(rows);
       },
-      error: (err) => {
-        console.error(err);
-        setError("Không đọc được file CSV.");
+      error(err) {
+        console.error("CSV parse error:", err);
+        alert("Không đọc được file CSV.");
       },
     });
-  };
+  }
 
-  // ----------------- GỬI LÊN API IMPORT -----------------
-  const commitImport = async () => {
-    if (!preview.length) {
-      alert("Không có dữ liệu để import.");
-      return;
-    }
-
+  async function commitImport() {
     if (!adminApiKey) {
       alert("Không tìm thấy API key admin. Hãy đăng nhập lại.");
       return;
     }
 
-    if (!window.confirm(`Import ${preview.length} món vào menu?`)) {
+    if (!previewRows.length) {
+      alert("Chưa có dữ liệu hợp lệ để import.");
       return;
     }
 
     try {
-      setImporting(true);
-      setError("");
-
-      // gửi thẳng mảng preview, service sẽ wrap thành { products: [...] }
-      const res = await importProducts(preview, adminApiKey);
-      const inserted = res?.data?.inserted ?? 0;
-
-      alert(`Đã import thành công ${inserted} món vào DB.`);
-
-      // Xoá preview và load lại menu từ DB
-      setPreview([]);
-      await loadFromServer();
+      setIsImporting(true);
+      await importProducts(previewRows, adminApiKey);
+      alert("Import thành công.");
+      setPreviewRows([]);
+      setSelectedFile(null);
+      await loadDbProducts();
     } catch (err) {
       console.error(err);
-      setError(err.message || "Import thất bại.");
+      alert(err.message);
     } finally {
-      setImporting(false);
+      setIsImporting(false);
     }
-  };
+  }
 
-  // ----------------- JSX (giữ nguyên cấu trúc + class để CSS chạy) -----------------
+  // ---- Edit / Delete ----
+  function openEditModal(p) {
+    setEditingProduct(p);
+    setEditForm({
+      name: p.name || "",
+      price: p.price || "",
+      category: p.category || "",
+      description: p.description || "",
+      is_active: p.is_active ? 1 : 0,
+    });
+  }
+
+  function closeEditModal() {
+    setEditingProduct(null);
+  }
+
+  function handleEditChange(e) {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: name === "price" ? Number(value) || "" : value,
+    }));
+  }
+
+  async function saveEdit() {
+    if (!editingProduct) return;
+    if (!adminApiKey) {
+      alert("Không tìm thấy API key admin. Hãy đăng nhập lại.");
+      return;
+    }
+
+    try {
+      const payload = {
+        name: editForm.name,
+        price: Number(editForm.price),
+        description: editForm.description,
+        // is_active và category bạn có thể map thêm nếu có UI riêng
+      };
+
+      await updateProduct(editingProduct.id, payload, adminApiKey);
+      alert("Cập nhật món thành công.");
+      closeEditModal();
+      await loadDbProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi cập nhật món: " + err.message);
+    }
+  }
+
+  async function handleDelete(p) {
+    if (!window.confirm(`Xoá (ẩn) món "${p.name}"?`)) return;
+    if (!adminApiKey) {
+      alert("Không tìm thấy API key admin. Hãy đăng nhập lại.");
+      return;
+    }
+
+    try {
+      await deleteProduct(p.id, adminApiKey);
+      await loadDbProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi xoá món: " + err.message);
+    }
+  }
+
   return (
-    <div className="bulk-import-container">
-      <h2>Quản lý món (Import CSV → DB)</h2>
+    <div className="bulkimport-page">
+      <h1 className="bulkimport-title">Quản lý món (Import CSV → DB)</h1>
 
-      {/* HÀNG NÚT */}
-      <div className="import-actions">
-        <button className="import-btn" onClick={downloadTemplate}>
+      <div className="bulkimport-actions">
+        <button className="btn-template" onClick={handleDownloadTemplate}>
           📄 Tải file mẫu
         </button>
 
-        <label className="import-btn">
+        <label className="btn-choose-file">
           📂 Chọn file CSV
           <input
             type="file"
-            accept=".csv"
-            hidden
-            onChange={(e) => handleFile(e.target.files[0])}
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={handleFileChange}
           />
         </label>
 
+        <label className="commit-wrapper">
+          <input
+            type="checkbox"
+            checked={true}
+            readOnly
+            className="commit-checkbox"
+          />
+          <span> Thêm vào DB</span>
+        </label>
+
         <button
-          className="import-btn"
-          disabled={importing || !preview.length}
+          className="btn-commit"
           onClick={commitImport}
+          disabled={isImporting || !previewRows.length}
         >
-          {importing ? "⏳ Đang import..." : "✅ Thêm vào DB"}
+          {isImporting ? "Đang import..." : "Thêm vào DB"}
         </button>
       </div>
 
-      {/* THÔNG BÁO LỖI */}
-      {error && <p className="bulk-import-error">{error}</p>}
-
-      {/* PREVIEW CSV */}
-      {preview.length > 0 && (
-        <div className="preview-section">
-          <h3>Dữ liệu sắp import ({preview.length} dòng):</h3>
-          <table className="import-table">
+      {/* Bảng preview CSV */}
+      <section className="bulkimport-section">
+        <h2 className="section-title">
+          Dữ liệu sắp import ({previewRows.length} dòng):
+        </h2>
+        {previewRows.length === 0 ? (
+          <p>Chưa có dữ liệu.</p>
+        ) : (
+          <table className="bulk-table">
             <thead>
               <tr>
                 <th>Tên</th>
                 <th>Giá</th>
                 <th>Danh mục</th>
                 <th>Mô tả</th>
-                <th>Ảnh</th>
                 <th>Hiển thị</th>
               </tr>
             </thead>
             <tbody>
-              {preview.map((item, idx) => (
+              {previewRows.map((row, idx) => (
                 <tr key={idx}>
-                  <td>{item.name}</td>
-                  <td>{item.price}</td>
-                  <td>{item.category}</td>
-                  <td>{item.description}</td>
-                  <td>{item.imageUrl ? "✅" : "⛔"}</td>
-                  <td>{item.available}</td>
+                  <td>{row.name}</td>
+                  <td>{row.price.toLocaleString()} đ</td>
+                  <td>{row.category}</td>
+                  <td>{row.description}</td>
+                  <td>{row.is_active ? "true" : "false"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </section>
 
-      {/* DANH SÁCH MÓN TRONG DB */}
-      <h3>Danh sách món hiện tại trong DB</h3>
-      {loading ? (
-        <p>Đang tải...</p>
-      ) : serverItems.length === 0 ? (
-        <p>Chưa có món nào trong DB.</p>
-      ) : (
-        <table className="import-table">
+      {/* Bảng sản phẩm trong DB */}
+      <section className="bulkimport-section">
+        <h2 className="section-title">Danh sách món hiện tại trong DB</h2>
+        <table className="bulk-table">
           <thead>
             <tr>
               <th>ID</th>
@@ -209,22 +273,83 @@ export default function BulkImport() {
               <th>Danh mục</th>
               <th>Ảnh</th>
               <th>Active</th>
+              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
-            {serverItems.map((item) => (
-              <tr key={item.id}>
-                <td>{item.id}</td>
-                <td>{item.name}</td>
-                <td>{Number(item.price).toLocaleString("vi-VN")} đ</td>
-                <td>{item.category || item.category_id}</td>
-                <td>{item.image_url ? "✅" : "⛔"}</td>
-                <td>{item.is_active ? "✅" : "⛔"}</td>
+            {dbProducts.map((p) => (
+              <tr key={p.id}>
+                <td>{p.id}</td>
+                <td>{p.name}</td>
+                <td>{Number(p.price).toLocaleString()} đ</td>
+                <td>{p.category}</td>
+                <td>{p.image_url ? "✅" : "⛔"}</td>
+                <td>{p.is_active ? "✅" : "⛔"}</td>
+                <td>
+                  <button
+                    className="btn-edit"
+                    onClick={() => openEditModal(p)}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    className="btn-delete"
+                    onClick={() => handleDelete(p)}
+                  >
+                    Xoá
+                  </button>
+                </td>
               </tr>
             ))}
+            {dbProducts.length === 0 && (
+              <tr>
+                <td colSpan={7}>Chưa có món nào trong DB</td>
+              </tr>
+            )}
           </tbody>
         </table>
+      </section>
+
+      {/* Modal sửa món đơn giản */}
+      {editingProduct && (
+        <div className="bulk-modal-backdrop">
+          <div className="bulk-modal">
+            <h3>Sửa món #{editingProduct.id}</h3>
+            <div className="form-row">
+              <label>Tên</label>
+              <input
+                name="name"
+                value={editForm.name}
+                onChange={handleEditChange}
+              />
+            </div>
+            <div className="form-row">
+              <label>Giá</label>
+              <input
+                name="price"
+                type="number"
+                value={editForm.price}
+                onChange={handleEditChange}
+              />
+            </div>
+            <div className="form-row">
+              <label>Mô tả</label>
+              <textarea
+                name="description"
+                value={editForm.description}
+                onChange={handleEditChange}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button onClick={closeEditModal}>Huỷ</button>
+              <button onClick={saveEdit}>Lưu</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
-}
+};
+
+export default BulkImport;

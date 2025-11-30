@@ -1,10 +1,12 @@
-// src/modules/product/product.dao.js
-const db = require("../../config/db");
+// backend/src/modules/product/product.dao.js
+const pool = require("../../config/db");
 
-// Lấy tất cả sản phẩm, join với categories để lấy tên danh mục
+// Lấy danh sách sản phẩm (có thể lọc theo activeOnly)
 async function findAll({ activeOnly } = {}) {
-  let sql = `
-    SELECT
+  const where = activeOnly ? "WHERE p.is_active = 1" : "";
+  const [rows] = await pool.query(
+    `
+    SELECT 
       p.id,
       p.name,
       p.description,
@@ -15,22 +17,22 @@ async function findAll({ activeOnly } = {}) {
       c.name AS category
     FROM products p
     JOIN categories c ON p.category_id = c.id
-  `;
-  const params = [];
-
-  if (activeOnly) {
-    sql += " WHERE p.is_active = 1 AND c.is_active = 1";
-  }
-
-  sql += " ORDER BY p.created_at DESC";
-
-  const [rows] = await db.query(sql, params);
+    ${where}
+    ORDER BY p.id ASC
+    `
+  );
   return rows;
 }
 
+// Hàm cũ dùng ở HomePage – giữ lại cho tương thích
+async function findAllActive() {
+  return findAll({ activeOnly: true });
+}
+
 async function findById(id) {
-  const sql = `
-    SELECT
+  const [rows] = await pool.query(
+    `
+    SELECT 
       p.id,
       p.name,
       p.description,
@@ -42,91 +44,101 @@ async function findById(id) {
     FROM products p
     JOIN categories c ON p.category_id = c.id
     WHERE p.id = ?
-  `;
-  const [rows] = await db.query(sql, [id]);
+    `,
+    [id]
+  );
   return rows[0] || null;
 }
 
+// Tạo sản phẩm (dùng cho bulk import nếu muốn)
 async function create(product) {
-  const { category_id, name, description, price, image_url, is_active } =
-    product;
+  const {
+    name,
+    description,
+    price,
+    image_url,
+    category_id,
+    is_active = 1,
+  } = product;
 
-  const [result] = await db.query(
-    `INSERT INTO products
-      (category_id, name, description, price, image_url, is_active)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      category_id,
-      name,
-      description || "",
-      price,
-      image_url || "",
-      is_active ? 1 : 0,
-    ]
+  const [result] = await pool.query(
+    `
+    INSERT INTO products (name, description, price, image_url, category_id, is_active)
+    VALUES (?, ?, ?, ?, ?, ?)
+    `,
+    [name, description, price, image_url, category_id, is_active]
   );
 
-  return { id: result.insertId, ...product };
+  return findById(result.insertId);
 }
 
-async function update(id, product) {
-  const { category_id, name, description, price, image_url, is_active } =
-    product;
+// Cập nhật 1 sản phẩm theo id (chỉ update field được truyền)
+async function updateById(id, data) {
+  const fields = [];
+  const params = [];
 
-  await db.query(
-    `UPDATE products
-       SET category_id = ?,
-           name = ?,
-           description = ?,
-           price = ?,
-           image_url = ?,
-           is_active = ?
-     WHERE id = ?`,
-    [
-      category_id,
-      name,
-      description || "",
-      price,
-      image_url || "",
-      is_active ? 1 : 0,
-      id,
-    ]
+  if (data.name !== undefined) {
+    fields.push("name = ?");
+    params.push(data.name);
+  }
+  if (data.description !== undefined) {
+    fields.push("description = ?");
+    params.push(data.description);
+  }
+  if (data.price !== undefined) {
+    fields.push("price = ?");
+    params.push(data.price);
+  }
+  if (data.image_url !== undefined) {
+    fields.push("image_url = ?");
+    params.push(data.image_url);
+  }
+  if (data.category_id !== undefined) {
+    fields.push("category_id = ?");
+    params.push(data.category_id);
+  }
+  if (data.is_active !== undefined) {
+    fields.push("is_active = ?");
+    params.push(data.is_active ? 1 : 0);
+  }
+
+  if (fields.length === 0) {
+    // Không có gì để update
+    return findById(id);
+  }
+
+  params.push(id);
+
+  await pool.query(
+    `
+    UPDATE products
+    SET ${fields.join(", ")}
+    WHERE id = ?
+    `,
+    params
   );
 
-  return { id, ...product };
+  return findById(id);
 }
 
-async function remove(id) {
-  await db.query("DELETE FROM products WHERE id = ?", [id]);
-}
-
-// Bulk insert: list đã có category_id, name, price,...
-async function bulkInsert(products) {
-  if (!products.length) return 0;
-
-  const values = products.map((p) => [
-    p.category_id,
-    p.name,
-    p.description || "",
-    p.price,
-    p.image_url || "",
-    p.is_active ? 1 : 0,
-  ]);
-
-  const [result] = await db.query(
-    `INSERT INTO products
-      (category_id, name, description, price, image_url, is_active)
-     VALUES ?`,
-    [values]
+// "Xoá mềm" – set is_active = 0 để không vướng khoá ngoại
+async function softDeleteById(id) {
+  await pool.query(
+    `
+    UPDATE products
+    SET is_active = 0
+    WHERE id = ?
+    `,
+    [id]
   );
-
-  return result.affectedRows;
+  return { success: true };
 }
 
 module.exports = {
   findAll,
+  findAllActive,
   findById,
   create,
-  update,
-  remove,
-  bulkInsert,
+  updateById,
+  softDeleteById,
 };

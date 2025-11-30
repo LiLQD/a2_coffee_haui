@@ -1,18 +1,22 @@
-// src/modules/product/product.routes.js
+// backend/src/modules/product/product.routes.js
 const express = require("express");
-const controller = require("./product.controller");
-
 const router = express.Router();
 
-// /api/products
-router.get("/", controller.handleGetProducts);
+const {
+  handleGetProducts,
+  handleGetProductById,
+  handleUpdateProduct,
+  handleDeleteProduct,
+} = require("./product.controller");
 
-// Bulk import phải đặt TRƯỚC /:id
-router.post("/bulk", controller.handleBulkImport);
+const requireAdminApiKey = require("../../middlewares/requireAdminApiKey");
 
-router.get("/:id", controller.handleGetProductById);
-router.post("/", controller.handleCreateProduct);
-router.put("/:id", controller.handleUpdateProduct);
-router.delete("/:id", controller.handleDeleteProduct);
+// Danh sách / chi tiết (public)
+router.get("/", handleGetProducts);
+router.get("/:id", handleGetProductById);
+
+// Admin: sửa + xoá
+router.put("/:id", requireAdminApiKey, handleUpdateProduct);
+router.delete("/:id", requireAdminApiKey, handleDeleteProduct);
 
 module.exports = router;

@@ -1,122 +1,367 @@
-.bulk-import-container {
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 24px;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 24px;
-  font-family: "Poppins", sans-serif;
+/* ===== MAIN PAGE CONTAINER ===== */
+.bulkimport-page {
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 20px 30px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
 }
 
-/* --- Khu nút thao tác đầu trang --- */
-.import-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, auto));
-  gap: 12px;
-}
-
-.import-btn {
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid #adb5bd;
-  background: #e9ecef;
-  color: #000;
-  cursor: pointer;
-  font-size: 15px;
+.bulkimport-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #1a1a1a;
   text-align: center;
 }
-.import-btn:hover {
-  background: #dde2e6;
+
+/* ===== ACTIONS ROW ===== */
+.bulkimport-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-/* --- Bảng dữ liệu --- */
-.import-table {
+.btn-template,
+.btn-choose-file,
+.btn-commit {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-template:hover,
+.btn-choose-file:hover,
+.btn-commit:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-commit {
+  background: #28a745;
+}
+
+.btn-commit:hover {
+  background: #218838;
+}
+
+.btn-commit:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Commit checkbox wrapper */
+.commit-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(0, 123, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.commit-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.commit-wrapper span {
+  font-weight: 600;
+  color: #007bff;
+}
+
+/* ===== SECTIONS ===== */
+.bulkimport-section {
+  margin-bottom: 36px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 8px;
+}
+
+/* ===== TABLES ===== */
+.bulk-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.import-table th {
-  background: #4c6ef5;
+.bulk-table thead {
+  background: linear-gradient(135deg, #1a73e8 0%, #0d5dc2 100%);
   color: white;
-  padding: 10px;
+}
+
+.bulk-table th,
+.bulk-table td {
+  padding: 12px 14px;
   text-align: left;
+  border-bottom: 1px solid #e5e5e5;
 }
 
-.import-table td {
-  border-bottom: 1px solid #eee;
-  padding: 8px;
+.bulk-table th {
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.import-table tr:hover {
-  background: #f8f9fa;
+.bulk-table tbody tr:hover {
+  background: rgba(26, 115, 232, 0.06);
+  transition: background 0.2s ease;
 }
 
-/* --- Nút hành động trong bảng --- */
-.table-actions button {
-  padding: 4px 8px;
+.bulk-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Empty state */
+.bulk-table tbody tr td[colspan] {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 24px;
+}
+
+/* ===== ACTION BUTTONS IN TABLE ===== */
+.btn-edit,
+.btn-delete {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
   border-radius: 6px;
-  cursor: pointer;
   border: none;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: all 0.2s ease;
 }
 
 .btn-edit {
-  background: #4c6ef5;
+  background: #ffa500;
   color: white;
 }
-.btn-edit:hover { background: #3b5bdb; }
+
+.btn-edit:hover {
+  background: #e68a00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 165, 0, 0.3);
+}
 
 .btn-delete {
-  background: #e03131;
+  background: #dc3545;
   color: white;
 }
-.btn-delete:hover { background: #c92a2a; }
 
-/* --- Modal chỉnh sửa --- */
-.modal {
+.btn-delete:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+/* ===== MODAL ===== */
+.bulk-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.35);
-  display: grid;
-  place-items: center;
-  z-index: 999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
 }
 
-.modal-content {
-  width: min(500px, 92vw);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bulk-modal {
   background: white;
-  border-radius: 10px;
-  padding: 20px;
-  display: grid;
-  gap: 10px;
+  width: 500px;
+  max-width: 90vw;
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
 }
 
-.modal-content input,
-.modal-content textarea,
-.modal-content select {
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
+.bulk-modal h3 {
+  margin-bottom: 18px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+/* ===== FORM ROWS IN MODAL ===== */
+.form-row {
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-row input,
+.form-row textarea,
+.form-row select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.form-row input:focus,
+.form-row textarea:focus,
+.form-row select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-row textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* ===== MODAL ACTIONS ===== */
 .modal-actions {
+  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
 }
 
-.btn-close, .btn-save {
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
+.modal-actions button {
+  padding: 10px 20px;
+  border-radius: 6px;
   border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s ease;
 }
 
-.btn-close { background: #adb5bd; color: white; }
-.btn-close:hover { background: #868e96; }
+.modal-actions button:first-child {
+  background: #6c757d;
+  color: white;
+}
 
-.btn-save { background: #4c6ef5; color: white; }
-.btn-save:hover { background: #3b5bdb; }
+.modal-actions button:first-child:hover {
+  background: #5a6268;
+}
+
+.modal-actions button:last-child {
+  background: #007bff;
+  color: white;
+}
+
+.modal-actions button:last-child:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .bulkimport-page {
+    padding: 15px;
+    margin: 15px auto;
+  }
+
+  .bulkimport-title {
+    font-size: 22px;
+  }
+
+  .bulkimport-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-template,
+  .btn-choose-file,
+  .btn-commit {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bulk-table {
+    font-size: 13px;
+  }
+
+  .bulk-table th,
+  .bulk-table td {
+    padding: 8px 10px;
+  }
+
+  .bulk-modal {
+    width: 95vw;
+    padding: 20px;
+  }
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #999;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
