@@ -11,6 +11,7 @@ import BulkImport from "./pages/BulkImport.jsx";
 
 import AdminRoute from "./components/AdminRoute.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import InvoiceManagement from "./pages/InvoiceManagement.jsx";
 
 
 function AppRoutes() {
@@ -37,6 +38,14 @@ function AppRoutes() {
         element={
           <AdminRoute>
             <Dashboard />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/invoices"
+        element={
+          <AdminRoute>
+            <InvoiceManagement />
           </AdminRoute>
         }
       />

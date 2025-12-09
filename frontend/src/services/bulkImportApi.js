@@ -9,7 +9,7 @@ export async function importProducts(rows, adminApiKey) {
       "Content-Type": "application/json",
       "x-admin-apikey": adminApiKey,  // ✅ Giữ nguyên
     },
-    body: JSON.stringify({ products: rows }),  
+    body: JSON.stringify({ products: rows }),
   });
 
   const text = await resp.text();
@@ -36,11 +36,17 @@ export async function updateProduct(id, payload, adminApiKey) {
   return JSON.parse(text);
 }
 
-export async function deleteProduct(id, adminApiKey) {
-  const resp = await fetch(`${API_BASE_URL}/products/${id}`, {
+// type: 'hard' | 'soft' (def)
+export async function deleteProduct(id, type, adminApiKey) {
+  let url = `${API_BASE_URL}/products/${id}`;
+  if (type) {
+    url += `?type=${type}`;
+  }
+
+  const resp = await fetch(url, {
     method: "DELETE",
     headers: {
-      "x-admin-apikey": adminApiKey,  // ✅ ĐÚNG RỒI
+      "x-admin-apikey": adminApiKey,
     },
   });
 

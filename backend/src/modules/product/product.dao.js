@@ -134,11 +134,31 @@ async function softDeleteById(id) {
   return { success: true };
 }
 
+// "Xoá cứng" - Xóa hoàn toàn khỏi database
+async function hardDeleteById(id) {
+  await pool.query(
+    "DELETE FROM products WHERE id = ?",
+    [id]
+  );
+  return { success: true };
+}
+
+// Tìm theo tên (để check trùng)
+async function findByName(name) {
+  const [rows] = await pool.query(
+    "SELECT * FROM products WHERE name = ? LIMIT 1",
+    [name]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   findAll,
   findAllActive,
   findById,
+  findByName,
   create,
   updateById,
   softDeleteById,
+  hardDeleteById,
 };

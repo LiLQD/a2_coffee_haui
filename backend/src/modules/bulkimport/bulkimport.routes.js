@@ -2,14 +2,13 @@
 
 const express = require("express");
 const router = express.Router();
-const { handleBulkImportProducts } = require("./bulkimport.controller");
+const { handleBulkImportProducts, handleResetProductIds } = require("./bulkimport.controller");
 
-// KHÓA ADMIN CỐ ĐỊNH – phải khớp với LoginPage + localStorage
 const ADMIN_API_KEY = "a2coffee-admin-secret";
 
 // middleware xác thực admin API key
 function requireAdminApiKey(req, res, next) {
-  // chỉ nhận đúng 1 header cho rõ ràng
+
   const apiKey = req.headers["x-admin-apikey"];
 
   // log debug để nếu còn lỗi thì nhìn được giá trị thực tế
@@ -25,7 +24,7 @@ function requireAdminApiKey(req, res, next) {
   next();
 }
 
-// POST /api/bulkimport/products
-router.post("/products", requireAdminApiKey, handleBulkImportProducts);
 
+router.post("/products", requireAdminApiKey, handleBulkImportProducts);
+router.post("/reset-ids", requireAdminApiKey, handleResetProductIds);
 module.exports = router;

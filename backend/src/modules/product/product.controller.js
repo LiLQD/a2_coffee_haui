@@ -46,11 +46,13 @@ async function handleUpdateProduct(req, res, next) {
   }
 }
 
-// DELETE /api/products/:id (admin – xoá mềm)
+// DELETE /api/products/:id (admin)
+// Query: ?type=hard (xóa vĩnh viễn) hoặc mặc định soft (ẩn đi)
 async function handleDeleteProduct(req, res, next) {
   try {
     const id = Number(req.params.id);
-    await productService.deleteProduct(id);
+    const type = req.query.type; // 'hard' or other
+    await productService.deleteProduct(id, type);
     res.json({ data: { success: true } });
   } catch (err) {
     console.error("handleDeleteProduct error:", err);

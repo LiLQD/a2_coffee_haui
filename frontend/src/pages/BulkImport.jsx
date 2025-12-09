@@ -1,5 +1,6 @@
 // frontend/src/pages/BulkImport.jsx
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Papa from "papaparse";
 import "../assets/styles/bulkImport.css";
 import { getUser } from "../utils/authStore";
@@ -9,6 +10,8 @@ import {
   deleteProduct,
 } from "../services/bulkImportApi";
 import { fetchProducts } from "../services/productApi";
+
+const API_BASE_URL = "http://localhost:3000/api";
 
 const BulkImport = () => {
   const [previewRows, setPreviewRows] = useState([]);
@@ -22,7 +25,9 @@ const BulkImport = () => {
     name: "",
     price: "",
     category: "",
+
     description: "",
+    image_url: "",
     is_active: 1,
   });
 
@@ -35,7 +40,6 @@ const BulkImport = () => {
 
   async function loadDbProducts() {
     try {
-      // Lấy tất cả (kể cả inactive)
       const resp = await fetchProducts(false);
       setDbProducts(resp);
     } catch (err) {
@@ -74,6 +78,7 @@ const BulkImport = () => {
             const price = Number(row["Giá"]);
             const category = (row["Danh mục"] || "").trim();
             const description = (row["Mô tả"] || "").trim();
+            const imageUrl = (row["Ảnh"] || row["Image"] || "").trim();
             const visibleRaw = (row["Hiển thị"] || "").toString().toLowerCase();
             const is_active =
               visibleRaw === "false" || visibleRaw === "0" ? false : true;
@@ -85,6 +90,7 @@ const BulkImport = () => {
               price,
               category,
               description,
+              image_url: imageUrl,
               is_active,
             };
           })
@@ -125,6 +131,39 @@ const BulkImport = () => {
     }
   }
 
+
+  async function handleResetIds() {
+    if (!window.confirm("Reset tất cả ID về dạng liên tục (1,2,3...)? Thao tác không thể hoàn tác!")) {
+      return;
+    }
+
+    if (!adminApiKey) {
+      alert("Không tìm thấy API key admin.");
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/bulkimport/reset-ids`, {
+        method: "POST",
+        headers: {
+          "x-admin-apikey": adminApiKey,
+        },
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.error || "Reset IDs thất bại");
+      }
+
+      alert("Reset IDs thành công!");
+      await loadDbProducts();
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  }
+
   // ---- Edit / Delete ----
   function openEditModal(p) {
     setEditingProduct(p);
@@ -132,7 +171,9 @@ const BulkImport = () => {
       name: p.name || "",
       price: p.price || "",
       category: p.category || "",
+
       description: p.description || "",
+      image_url: p.image_url || "",
       is_active: p.is_active ? 1 : 0,
     });
   }
@@ -160,8 +201,9 @@ const BulkImport = () => {
       const payload = {
         name: editForm.name,
         price: Number(editForm.price),
+
         description: editForm.description,
-        // is_active và category bạn có thể map thêm nếu có UI riêng
+        image_url: editForm.image_url,
       };
 
       await updateProduct(editingProduct.id, payload, adminApiKey);
@@ -174,19 +216,30 @@ const BulkImport = () => {
     }
   }
 
-  async function handleDelete(p) {
-    if (!window.confirm(`Xoá (ẩn) món "${p.name}"?`)) return;
+  async function handleHardDelete(p) {
+    if (!window.confirm(`Xóa VĨNH VIỄN món "${p.name}"? Hành động này không thể hoàn tác!`)) return;
     if (!adminApiKey) {
-      alert("Không tìm thấy API key admin. Hãy đăng nhập lại.");
+      alert("Không tìm thấy API key admin.");
       return;
     }
 
     try {
-      await deleteProduct(p.id, adminApiKey);
+      await deleteProduct(p.id, "hard", adminApiKey);
       await loadDbProducts();
     } catch (err) {
       console.error(err);
-      alert("Lỗi xoá món: " + err.message);
+      alert("Lỗi xóa món: " + err.message);
+    }
+  }
+
+  async function handleToggleActive(p) {
+    if (!adminApiKey) return;
+    try {
+      await updateProduct(p.id, { is_active: !p.is_active }, adminApiKey);
+      await loadDbProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi cập nhật trạng thái: " + err.message);
     }
   }
 
@@ -226,6 +279,23 @@ const BulkImport = () => {
         >
           {isImporting ? "Đang import..." : "Thêm vào DB"}
         </button>
+
+        {/* ✅ NÚT RESET IDs */}
+        <button
+          className="btn-reset"
+          onClick={handleResetIds}
+          style={{
+            background: "#dc3545",
+            color: "white",
+            border: "none",
+            padding: "10px 18px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          🔄 Reset IDs
+        </button>
       </div>
 
       {/* Bảng preview CSV */}
@@ -243,6 +313,7 @@ const BulkImport = () => {
                 <th>Giá</th>
                 <th>Danh mục</th>
                 <th>Mô tả</th>
+                <th>Ảnh</th>
                 <th>Hiển thị</th>
               </tr>
             </thead>
@@ -253,6 +324,17 @@ const BulkImport = () => {
                   <td>{row.price.toLocaleString()} đ</td>
                   <td>{row.category}</td>
                   <td>{row.description}</td>
+                  <td>
+                    {row.image_url ? (
+                      <img
+                        src={row.image_url}
+                        alt=""
+                        style={{ width: 30, height: 30, objectFit: "cover" }}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>{row.is_active ? "true" : "false"}</td>
                 </tr>
               ))}
@@ -289,14 +371,30 @@ const BulkImport = () => {
                   <button
                     className="btn-edit"
                     onClick={() => openEditModal(p)}
+                    style={{ marginRight: 5 }}
                   >
                     Sửa
                   </button>
                   <button
-                    className="btn-delete"
-                    onClick={() => handleDelete(p)}
+                    onClick={() => handleToggleActive(p)}
+                    style={{
+                      marginRight: 5,
+                      background: p.is_active ? "#f0ad4e" : "#5bc0de",
+                      color: "white",
+                      border: "none",
+                      padding: "5px 10px",
+                      cursor: "pointer",
+                      borderRadius: 4
+                    }}
                   >
-                    Xoá
+                    {p.is_active ? "Ẩn" : "Hiện"}
+                  </button>
+                  <button
+                    className="btn-delete"
+                    onClick={() => handleHardDelete(p)}
+                    style={{ background: "#d9534f" }}
+                  >
+                    Xóa hẳn
                   </button>
                 </td>
               </tr>
@@ -311,44 +409,56 @@ const BulkImport = () => {
       </section>
 
       {/* Modal sửa món đơn giản */}
-      {editingProduct && (
-        <div className="bulk-modal-backdrop">
-          <div className="bulk-modal">
-            <h3>Sửa món #{editingProduct.id}</h3>
-            <div className="form-row">
-              <label>Tên</label>
-              <input
-                name="name"
-                value={editForm.name}
-                onChange={handleEditChange}
-              />
-            </div>
-            <div className="form-row">
-              <label>Giá</label>
-              <input
-                name="price"
-                type="number"
-                value={editForm.price}
-                onChange={handleEditChange}
-              />
-            </div>
-            <div className="form-row">
-              <label>Mô tả</label>
-              <textarea
-                name="description"
-                value={editForm.description}
-                onChange={handleEditChange}
-              />
-            </div>
+      {
+        editingProduct && createPortal(
+          <div className="bulk-modal-backdrop">
+            <div className="bulk-modal">
+              <h3>Sửa món #{editingProduct.id}</h3>
+              <div className="form-row">
+                <label>Tên</label>
+                <input
+                  name="name"
+                  value={editForm.name}
+                  onChange={handleEditChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Giá</label>
+                <input
+                  name="price"
+                  type="number"
+                  value={editForm.price}
+                  onChange={handleEditChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Mô tả</label>
+                <textarea
+                  name="description"
+                  value={editForm.description}
+                  onChange={handleEditChange}
+                />
+              </div>
+              <div className="form-row">
+                <label>Link Ảnh</label>
+                <input
+                  name="image_url"
+                  value={editForm.image_url}
+                  onChange={handleEditChange}
+                  placeholder="http://..."
+                />
+              </div>
 
-            <div className="modal-actions">
-              <button onClick={closeEditModal}>Huỷ</button>
-              <button onClick={saveEdit}>Lưu</button>
+              <div className="modal-actions">
+                <button onClick={closeEditModal}>Hủy</button>
+                <button onClick={saveEdit}>Lưu</button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </div>,
+          document.body
+        )
+      }
+    </div >
   );
 };
 

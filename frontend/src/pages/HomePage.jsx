@@ -9,9 +9,6 @@ import { fetchProducts } from "../services/productApi";
 import { getCart, setCart } from "../utils/cartStore";
 import { getUser } from "../utils/authStore";
 
-/**
- * Bỏ dấu tiếng Việt + lower-case để search
- */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -21,11 +18,6 @@ function normalize(str) {
     .replace(/đ/g, "d");
 }
 
-/**
- * Build đường dẫn ảnh sản phẩm
- * - Nếu là URL / path tuyệt đối thì dùng luôn
- * - Nếu là tên file thì map vào thư mục assets/images
- */
 function getProductImage(imageNameOrUrl) {
   if (!imageNameOrUrl) return null;
 
@@ -43,32 +35,21 @@ function getProductImage(imageNameOrUrl) {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const currentUser = getUser(); // lấy user từ localStorage (login)
+  const currentUser = getUser();
 
-  // Data chính
-  const [items, setItems] = useState([]); // tất cả món
-  const [filteredItems, setFilteredItems] = useState([]); // sau khi lọc
-  const [categories, setCategories] = useState([]); // danh mục
-
+  const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // UI state
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("Tất cả");
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
-
-  // Cart state
   const [cartCount, setCartCount] = useState(0);
-
-  // Modal chi tiết món
   const [selectedItem, setSelectedItem] = useState(null);
   const [qty, setQty] = useState(1);
 
-  // --------------------------------------------------
-  // 1. Load menu + khởi tạo cartCount
-  // --------------------------------------------------
   useEffect(() => {
     let cancelled = false;
 
@@ -76,9 +57,7 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError(null);
-
-        const products = await fetchProducts(true); // chỉ lấy món active
-
+        const products = await fetchProducts(true);
         if (cancelled) return;
 
         setItems(products);
@@ -100,12 +79,10 @@ export default function HomePage() {
 
     loadProducts();
 
-    // Khởi tạo cart từ localStorage
     try {
       const cart = getCart();
       const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
       setCartCount(total);
-      console.log("Cart initial:", cart);
     } catch (e) {
       console.warn("Không đọc được cart từ localStorage:", e);
     }
@@ -115,17 +92,11 @@ export default function HomePage() {
     };
   }, []);
 
-  // --------------------------------------------------
-  // 2. Lọc theo danh mục + từ khoá search
-  // --------------------------------------------------
   useEffect(() => {
     const q = normalize(search);
-
     const result = items.filter((item) => {
       const cat = item.category || item.category_id || "Khác";
-
       if (activeCategory !== "Tất cả" && cat !== activeCategory) return false;
-
       if (!q) return true;
 
       const name = normalize(item.name);
@@ -138,9 +109,6 @@ export default function HomePage() {
     setFilteredItems(result);
   }, [items, search, activeCategory]);
 
-  // --------------------------------------------------
-  // 3. Đóng menu ⋮ khi click ra ngoài
-  // --------------------------------------------------
   useEffect(() => {
     function handleClickOutside(e) {
       if (moreRef.current && !moreRef.current.contains(e.target)) {
@@ -152,9 +120,6 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --------------------------------------------------
-  // 4. Handler
-  // --------------------------------------------------
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
@@ -166,7 +131,6 @@ export default function HomePage() {
   const handleAddToCart = (product) => {
     try {
       const cart = getCart();
-
       const index = cart.findIndex((c) => c.id === product.id);
       if (index >= 0) {
         cart[index].quantity = (cart[index].quantity || 1) + 1;
@@ -182,11 +146,8 @@ export default function HomePage() {
       }
 
       setCart(cart);
-
       const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
       setCartCount(total);
-
-      console.log("Cart after add:", cart);
     } catch (err) {
       console.error("Không thêm được vào giỏ hàng:", err);
       alert("Không thêm được vào giỏ hàng");
@@ -211,22 +172,12 @@ export default function HomePage() {
     closeDetailModal();
   };
 
-  const goToCart = () => {
-    navigate("/cart");
-  };
+  const goToCart = () => navigate("/cart");
+  const goToOrderHistory = () => navigate("/orders");
+  const goToBulkImport = () => navigate("/admin/bulkimport");
+  const goToDashboard = () => navigate("/admin/dashboard");
+  const goToInvoices = () => navigate("/admin/invoices"); // ✅ THÊM DÒNG NÀY
 
-  const goToOrderHistory = () => {
-    navigate("/orders");
-  };
-
-  const goToBulkImport = () => {
-    // Nếu route bạn đang dùng là "/bulkimport" thì đổi lại cho khớp
-    navigate("/admin/bulkimport");
-  };
-
-  // --------------------------------------------------
-  // 5. JSX
-  // --------------------------------------------------
   return (
     <div className="home-container">
       {/* HEADER */}
@@ -247,29 +198,30 @@ export default function HomePage() {
         </div>
 
         <div className="header-right">
-          {/* Giỏ hàng */}
           <button className="icon-button" onClick={goToCart}>
             🛒
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </button>
 
-          {/* Lịch sử đơn hàng */}
           <button className="icon-button" onClick={goToOrderHistory}>
             📜
           </button>
 
-          {/* Nút Bulk Import chỉ hiện với ADMIN */}
           {currentUser?.role === "ADMIN" && (
-            <button className="bulkimport-btn" onClick={goToBulkImport}>
-              Bulk Import
-            </button>
+            <>
+              <button className="bulkimport-btn" onClick={goToBulkImport}>
+                Import
+              </button>
+              <button className="icon-button" onClick={goToDashboard}>
+                📊 
+              </button>
+              {/* ✅ THÊM NÚT INVOICES */}
+              <button className="icon-button" onClick={goToInvoices}>
+                🧾 
+              </button>
+            </>
           )}
-          {currentUser?.role === "ADMIN" && (
-            <button className="icon-button" onClick={() => navigate("/admin/dashboard")}>
-              📊 Dashboard
-            </button>
-          )}
-          {/* Nếu bạn vẫn muốn giữ menu ⋮ cho admin, có thể để lại như dưới */}
+
           {currentUser?.role === "ADMIN" && (
             <div className="dropdown" ref={moreRef}>
               <button
@@ -280,7 +232,9 @@ export default function HomePage() {
               </button>
               {moreOpen && (
                 <div className="dropdown-menu">
-                  <button onClick={goToBulkImport}>📥 Bulk import món</button>
+                  <button onClick={goToBulkImport}>🔥 Bulk import món</button>
+                  <button onClick={goToDashboard}>📊 Dashboard</button>
+                  <button onClick={goToInvoices}>🧾 Hóa đơn</button>
                 </div>
               )}
             </div>
@@ -291,8 +245,7 @@ export default function HomePage() {
       {/* NAV DANH MỤC */}
       <nav className="nav-categories">
         <button
-          className={`nav-item ${activeCategory === "Tất cả" ? "active" : ""
-            }`}
+          className={`nav-item ${activeCategory === "Tất cả" ? "active" : ""}`}
           onClick={() => selectCategory("Tất cả")}
         >
           Tất cả
@@ -300,8 +253,7 @@ export default function HomePage() {
         {categories.map((cat) => (
           <button
             key={cat}
-            className={`nav-item ${activeCategory === cat ? "active" : ""
-              }`}
+            className={`nav-item ${activeCategory === cat ? "active" : ""}`}
             onClick={() => selectCategory(cat)}
           >
             {cat}
