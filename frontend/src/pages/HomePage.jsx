@@ -264,7 +264,11 @@ export default function HomePage() {
               Bulk Import
             </button>
           )}
-
+          {currentUser?.role === "ADMIN" && (
+            <button className="icon-button" onClick={() => navigate("/admin/dashboard")}>
+              📊 Dashboard
+            </button>
+          )}
           {/* Nếu bạn vẫn muốn giữ menu ⋮ cho admin, có thể để lại như dưới */}
           {currentUser?.role === "ADMIN" && (
             <div className="dropdown" ref={moreRef}>
@@ -287,9 +291,8 @@ export default function HomePage() {
       {/* NAV DANH MỤC */}
       <nav className="nav-categories">
         <button
-          className={`nav-item ${
-            activeCategory === "Tất cả" ? "active" : ""
-          }`}
+          className={`nav-item ${activeCategory === "Tất cả" ? "active" : ""
+            }`}
           onClick={() => selectCategory("Tất cả")}
         >
           Tất cả
@@ -297,9 +300,8 @@ export default function HomePage() {
         {categories.map((cat) => (
           <button
             key={cat}
-            className={`nav-item ${
-              activeCategory === cat ? "active" : ""
-            }`}
+            className={`nav-item ${activeCategory === cat ? "active" : ""
+              }`}
             onClick={() => selectCategory(cat)}
           >
             {cat}

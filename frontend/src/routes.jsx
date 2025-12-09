@@ -10,6 +10,8 @@ import OrderHistory from "./pages/OrderHistory.jsx";
 import BulkImport from "./pages/BulkImport.jsx";
 
 import AdminRoute from "./components/AdminRoute.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+
 
 function AppRoutes() {
   return (
@@ -30,6 +32,14 @@ function AppRoutes() {
         }
       />
 
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminRoute>
+            <Dashboard />
+          </AdminRoute>
+        }
+      />
       {/* fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
