@@ -13,7 +13,7 @@ import { fetchProducts } from "../services/productApi";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
-const BulkImport = () => {
+const BulkImport = ({ isEmbedded = false }) => {
   const [previewRows, setPreviewRows] = useState([]);
   const [dbProducts, setDbProducts] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -245,7 +245,7 @@ const BulkImport = () => {
 
   return (
     <div className="bulkimport-page">
-      <h1 className="bulkimport-title">Quản lý món (Import CSV → DB)</h1>
+      {!isEmbedded && <h1 className="bulkimport-title">Quản lý món (Import CSV → DB)</h1>}
 
       <div className="bulkimport-actions">
         <button className="btn-template" onClick={handleDownloadTemplate}>

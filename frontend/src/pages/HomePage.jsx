@@ -209,36 +209,15 @@ export default function HomePage() {
 
           {currentUser?.role === "ADMIN" && (
             <>
-              <button className="bulkimport-btn" onClick={goToBulkImport}>
-                Import
-              </button>
+
               <button className="icon-button" onClick={goToDashboard}>
-                📊 
+                📊
               </button>
-              {/* ✅ THÊM NÚT INVOICES */}
-              <button className="icon-button" onClick={goToInvoices}>
-                🧾 
-              </button>
+
             </>
           )}
 
-          {currentUser?.role === "ADMIN" && (
-            <div className="dropdown" ref={moreRef}>
-              <button
-                className="icon-button"
-                onClick={() => setMoreOpen((s) => !s)}
-              >
-                ⋮
-              </button>
-              {moreOpen && (
-                <div className="dropdown-menu">
-                  <button onClick={goToBulkImport}>🔥 Bulk import món</button>
-                  <button onClick={goToDashboard}>📊 Dashboard</button>
-                  <button onClick={goToInvoices}>🧾 Hóa đơn</button>
-                </div>
-              )}
-            </div>
-          )}
+
         </div>
       </header>
 

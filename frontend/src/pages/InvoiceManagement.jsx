@@ -6,7 +6,7 @@ import "../assets/styles/invoice.css";
 
 const API_BASE = "http://localhost:3000/api";
 
-export default function InvoiceManagement() {
+export default function InvoiceManagement({ isEmbedded = false }) {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState({});
@@ -28,7 +28,7 @@ export default function InvoiceManagement() {
   async function loadInvoices() {
     try {
       setLoading(true);
-      
+
       const params = new URLSearchParams();
       if (filter.status) params.append("status", filter.status);
       if (filter.startDate) params.append("startDate", filter.startDate);
@@ -51,7 +51,7 @@ export default function InvoiceManagement() {
     try {
       const res = await fetch(`${API_BASE}/invoices/${invoice.id}`);
       const data = await res.json();
-      
+
       setSelectedInvoice(invoice);
       setInvoiceDetail(data.data);
     } catch (err) {
@@ -122,12 +122,14 @@ export default function InvoiceManagement() {
 
   return (
     <div className="invoice-container">
-      <header className="invoice-header">
-        <h1>🧾 Quản lý Hóa đơn</h1>
-        <button onClick={() => navigate("/admin/dashboard")}>
-          ← Dashboard
-        </button>
-      </header>
+      {!isEmbedded && (
+        <header className="invoice-header">
+          <h1>🧾 Quản lý Hóa đơn</h1>
+          <button onClick={() => navigate("/admin/dashboard")}>
+            ← Dashboard
+          </button>
+        </header>
+      )}
 
       {/* Stats Cards */}
       <div className="invoice-stats">
@@ -283,7 +285,7 @@ export default function InvoiceManagement() {
 
             <div className="modal-actions">
               <button onClick={() => setSelectedInvoice(null)}>Đóng</button>
-              
+
               {selectedInvoice.status === "PENDING" && (
                 <button
                   className="btn-primary"

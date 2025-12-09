@@ -14,6 +14,8 @@ import {
   ArcElement,
 } from "chart.js";
 import { Bar, Line, Pie } from "react-chartjs-2";
+import BulkImport from "./BulkImport";
+import InvoiceManagement from "./InvoiceManagement";
 import "../assets/styles/dashboard.css";
 
 ChartJS.register(
@@ -32,6 +34,7 @@ const API_BASE_URL = "http://localhost:3000/api";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview"); // overview | products | orders
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -44,8 +47,10 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (activeTab === "overview") {
+      loadDashboardData();
+    }
+  }, [activeTab]);
 
   async function loadDashboardData() {
     try {
@@ -187,7 +192,7 @@ export default function Dashboard() {
     ],
   };
 
-  if (loading) {
+  if (loading && activeTab === "overview") {
     return (
       <div className="dashboard-container">
         <p>Đang tải dữ liệu...</p>
@@ -199,46 +204,83 @@ export default function Dashboard() {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>📊 Dashboard Quản Trị</h1>
-        <button onClick={() => navigate("/home")}>← Quay lại</button>
+        <button onClick={() => navigate("/home")}>← Quay lại trang chủ</button>
       </header>
 
-      {/* Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Tổng Sản Phẩm</h3>
-          <p className="stat-number">{stats.totalProducts}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Tổng Đơn Hàng</h3>
-          <p className="stat-number">{stats.totalOrders}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Doanh Thu</h3>
-          <p className="stat-number">{stats.totalRevenue.toLocaleString()} đ</p>
-        </div>
+      {/* TABS NAVIGATION */}
+      <div className="dashboard-tabs">
+        <button
+          className={`tab-btn ${activeTab === "overview" ? "active" : ""}`}
+          onClick={() => setActiveTab("overview")}
+        >
+          Tổng quan
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "products" ? "active" : ""}`}
+          onClick={() => setActiveTab("products")}
+        >
+          Sản phẩm
+        </button>
+        <button
+          className={`tab-btn ${activeTab === "orders" ? "active" : ""}`}
+          onClick={() => setActiveTab("orders")}
+        >
+          Đơn hàng
+        </button>
       </div>
 
-      {/* Charts */}
-      <div className="charts-grid">
-        <div className="chart-card">
-          <h3>Đơn Hàng Theo Trạng Thái</h3>
-          <Bar data={orderStatusData} options={{ responsive: true }} />
-        </div>
+      {/* CONTENT */}
+      <div className="tab-content">
+        {activeTab === "products" && <BulkImport isEmbedded={true} />}
+        {activeTab === "orders" && <InvoiceManagement isEmbedded={true} />}
 
-        <div className="chart-card">
-          <h3>Doanh Thu 7 Ngày Gần Nhất</h3>
-          <Line data={revenueData} options={{ responsive: true }} />
-        </div>
+        {activeTab === "overview" && (
+          <>
+            {/* Stats Cards */}
+            <div className="stats-grid">
+              <div className="stat-card">
+                <h3>Tổng Sản Phẩm</h3>
+                <p className="stat-number">{stats.totalProducts}</p>
+              </div>
+              <div className="stat-card">
+                <h3>Tổng Đơn Hàng</h3>
+                <p className="stat-number">{stats.totalOrders}</p>
+              </div>
+              <div className="stat-card">
+                <h3>Doanh Thu</h3>
+                <p className="stat-number">
+                  {stats.totalRevenue.toLocaleString()} đ
+                </p>
+              </div>
+            </div>
 
-        <div className="chart-card">
-          <h3>Top 5 Sản Phẩm Bán Chạy</h3>
-          <Bar data={topProductsData} options={{ responsive: true, indexAxis: "y" }} />
-        </div>
+            {/* Charts */}
+            <div className="charts-grid">
+              <div className="chart-card">
+                <h3>Đơn Hàng Theo Trạng Thái</h3>
+                <Bar data={orderStatusData} options={{ responsive: true }} />
+              </div>
 
-        <div className="chart-card">
-          <h3>Phân Bố Danh Mục</h3>
-          <Pie data={categoryData} options={{ responsive: true }} />
-        </div>
+              <div className="chart-card">
+                <h3>Doanh Thu 7 Ngày Gần Nhất</h3>
+                <Line data={revenueData} options={{ responsive: true }} />
+              </div>
+
+              <div className="chart-card">
+                <h3>Top 5 Sản Phẩm Bán Chạy</h3>
+                <Bar
+                  data={topProductsData}
+                  options={{ responsive: true, indexAxis: "y" }}
+                />
+              </div>
+
+              <div className="chart-card">
+                <h3>Phân Bố Danh Mục</h3>
+                <Pie data={categoryData} options={{ responsive: true }} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
