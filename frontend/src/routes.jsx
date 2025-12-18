@@ -3,6 +3,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import CartPage from "./pages/CartPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
@@ -18,6 +19,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route path="/home" element={<HomePage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />

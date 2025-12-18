@@ -7,8 +7,8 @@ const routes = require("./routes");
 const app = express();
 
 // Middleware chung
-app.use(cors());             
-app.use(express.json());      
+app.use(cors());
+app.use(express.json());
 
 // Health check để test nhanh
 app.get("/api/health", (req, res) => {
@@ -32,5 +32,17 @@ app.use((err, req, res, next) => {
     .status(err.statusCode || 500)
     .json({ message: err.message || "Internal Server Error" });
 });
+
+// --- PHỤC VỤ FRONTEND (DEPLOY) ---
+const path = require("path");
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get(/(.*)/, (req, res) => {
+  res.sendFile(path.join(__dirname, "../../frontend/dist", "index.html"));
+});
+
 
 module.exports = app;

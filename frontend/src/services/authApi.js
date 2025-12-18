@@ -24,3 +24,22 @@ export async function login(username, password) {
   const json = await res.json();
   return json.data.user;
 }
+
+export async function register(data) {
+  const res = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    const msg = json?.error || json?.message || "Đăng ký thất bại.";
+    throw new Error(msg);
+  }
+
+  const json = await res.json();
+  return json.data;
+}

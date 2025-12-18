@@ -1,9 +1,8 @@
-// src/modules/auth/auth.service.js
 const authDao = require("./auth.dao");
+const bcrypt = require("bcryptjs");
 
 /**
- * Đăng nhập đơn giản: so sánh password plaintext
- * (phù hợp bài tập, KHÔNG dùng cho sản phẩm thực).
+ * Đăng nhập: hỗ trợ cả hash và plaintext (cho tk cũ)
  */
 async function login(username, password) {
   const user = await authDao.findByUsername(username);
@@ -20,8 +19,17 @@ async function login(username, password) {
     throw err;
   }
 
-  // Demo: so sánh trực tiếp. Sau này thay bằng bcrypt.compare(...)
-  if (password !== user.password_hash) {
+  // Kiểm tra password
+  let isMatch = false;
+  // Nếu hash bắt đầu bằng $2... thì là bcrypt
+  if (user.password_hash && user.password_hash.startsWith("$2")) {
+    isMatch = await bcrypt.compare(password, user.password_hash);
+  } else {
+    // So sánh trực tiếp (legacy format)
+    isMatch = password === user.password_hash;
+  }
+
+  if (!isMatch) {
     const err = new Error("INVALID_CREDENTIALS");
     err.status = 401;
     throw err;
@@ -33,6 +41,35 @@ async function login(username, password) {
   return safeUser;
 }
 
+/**
+ * Đăng ký user mới
+ */
+async function register(data) {
+  const { username, password, fullName, email } = data;
+
+  // 1. Kiểm tra tồn tại
+  const exist = await authDao.findByUsername(username);
+  if (exist) {
+    const err = new Error("USERNAME_ALREADY_EXISTS");
+    err.status = 409;
+    throw err;
+  }
+
+  // 2. Hash password
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  // 3. Tạo user
+  const userId = await authDao.createUser({
+    username,
+    passwordHash,
+    fullName,
+    email,
+  });
+
+  return userId;
+}
+
 module.exports = {
   login,
+  register,
 };

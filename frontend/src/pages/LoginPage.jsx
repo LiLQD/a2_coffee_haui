@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../assets/styles/login.css";
 import hauiLogo from "../assets/images/haui-logo.png";
+import { login } from "../services/authApi";
 import { setUser } from "../utils/authStore";
 
 const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY;
@@ -10,36 +11,27 @@ const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY;
 export default function LoginPage() {
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
     const username = form.username.value.trim();
     const password = form.password.value.trim();
 
-    // Demo đơn giản:
-    // admin / 123  => ADMIN
-    // user  / 123  => CUSTOMER
-    if (username === "admin" && password === "123") {
-      // user admin có API key để gọi bulkimport
-      setUser({
-        id: 1,
-        username: "admin",
-        fullName: "Quản trị viên",
-        role: "ADMIN",
-        apiKey: ADMIN_API_KEY, // rất quan trọng!
-      });
-      navigate("/home");
-    } else if (username === "user" && password === "123") {
-      // user thường không có apiKey
-      setUser({
-        id: 2,
-        username: "user",
-        fullName: "Khách hàng",
-        role: "CUSTOMER",
-      });
-      navigate("/home");
-    } else {
-      alert("Sai tài khoản hoặc mật khẩu (demo: admin/123 hoặc user/123)");
+    try {
+      const user = await login(username, password);
+      // user object from backend should have role, etc.
+      // If backend user has api_key, use it, or fallback to environment (for admin demo)
+      // Actually backend user.api_key might be null for normal users.
+
+      setUser(user);
+
+      if (user.role === "ADMIN") {
+        navigate("/admin/dashboard"); // Or home but admin usually goes to dashboard
+      } else {
+        navigate("/home");
+      }
+    } catch (err) {
+      alert(err.message || "Đăng nhập thất bại");
     }
   };
 
@@ -72,6 +64,15 @@ export default function LoginPage() {
           </div>
 
           <button type="submit">Đăng nhập</button>
+
+          <button
+            type="button"
+            className="register"
+            style={{ marginTop: "10px" }}
+            onClick={() => navigate("/register")}
+          >
+            Đăng ký
+          </button>
         </form>
       </div>
 

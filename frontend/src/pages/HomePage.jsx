@@ -267,6 +267,7 @@ export default function HomePage() {
                       src={imgSrc}
                       alt={item.name}
                       className="product-image"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="product-image placeholder">No Image</div>

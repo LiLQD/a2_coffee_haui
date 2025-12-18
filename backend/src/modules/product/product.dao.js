@@ -24,7 +24,6 @@ async function findAll({ activeOnly } = {}) {
   return rows;
 }
 
-// Hàm cũ dùng ở HomePage – giữ lại cho tương thích
 async function findAllActive() {
   return findAll({ activeOnly: true });
 }
