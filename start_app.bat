@@ -43,7 +43,8 @@ echo [INFO] Checking Database...
 set DB_NAME=a2_snack
 set DB_USER=root
 set DB_PASS=
-set SQL_FILE=a2_coffee_haui.sql
+REM The bat file is at root, so db folder is just "db"
+set SQL_FILE=db\a2_coffee_haui.sql
 
 if exist "%SQL_FILE%" (
     echo Found SQL dump file: %SQL_FILE%
@@ -63,11 +64,11 @@ if exist "%SQL_FILE%" (
         if "%DB_PASS%"=="" (
             mysql -u %DB_USER% -e "CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
             echo Importing data...
-            mysql -u %DB_USER% %DB_NAME% < %SQL_FILE%
+            mysql -u %DB_USER% %DB_NAME% < "%SQL_FILE%"
         ) else (
             mysql -u %DB_USER% -p%DB_PASS% -e "CREATE DATABASE IF NOT EXISTS %DB_NAME% CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
             echo Importing data...
-            mysql -u %DB_USER% -p%DB_PASS% %DB_NAME% < %SQL_FILE%
+            mysql -u %DB_USER% -p%DB_PASS% %DB_NAME% < "%SQL_FILE%"
         )
         
         if %errorlevel% neq 0 (
@@ -77,7 +78,7 @@ if exist "%SQL_FILE%" (
         )
     )
 ) else (
-    echo [INFO] No SQL dump file found. Skipping import.
+    echo [INFO] No SQL dump file found at %SQL_FILE%. Skipping import.
 )
 
 cd ..
